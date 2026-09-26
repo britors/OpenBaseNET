@@ -279,7 +279,11 @@ public sealed class OraclePersistenceTests : TestDatabase
         var context = scope.ServiceProvider.GetRequiredService<OpenBaseDbContext>();
         var work = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-        var customerId = await InstallSlowCustomerViewAsync();
+        var customerId = await InstallBlockingCustomerViewAsync();
+        await using var blocker = new OracleConnection(ConnectionString);
+        await blocker.OpenAsync();
+        await using var blockingTransaction = await blocker.BeginTransactionAsync();
+        await blocker.ExecuteAsync("UPDATE CANCELLATION_GATE SET ID = ID WHERE ID = 1", transaction: blockingTransaction);
         async Task<bool> QueryAsync(CancellationToken token)
         {
             if (ef) await scope.ServiceProvider.GetRequiredService<ICustomerRepository>().GetAsync(customerId, token);
@@ -288,11 +292,21 @@ public sealed class OraclePersistenceTests : TestDatabase
         }
         var operation = transactional ? work.ExecuteAsync(QueryAsync, cancellation.Token) : QueryAsync(cancellation.Token);
 
-        await WaitForBlockedQueryAsync(operation);
-        cancellation.Cancel();
-        var error = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => operation.WaitAsync(TimeSpan.FromSeconds(5)));
-        Assert.Equal(cancellation.Token, error.CancellationToken);
-        await RemoveSlowCustomerViewAsync();
+        try
+        {
+            await WaitForBlockedQueryAsync(operation);
+            cancellation.Cancel();
+            var error = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => operation.WaitAsync(TimeSpan.FromSeconds(5)));
+            Assert.Equal(cancellation.Token, error.CancellationToken);
+        }
+        finally
+        {
+            // Never leave the server blocked if a cancellation assertion fails.
+            await blockingTransaction.RollbackAsync();
+            try { await operation.WaitAsync(TimeSpan.FromSeconds(10)); }
+            catch (Exception) { /* The assertion above owns the operation failure. */ }
+        }
+        await RemoveBlockingCustomerViewAsync();
         Assert.Null(context.Database.CurrentTransaction);
         Assert.Equal(ConnectionState.Closed, context.Database.GetDbConnection().State);
         await new CreateCustomer(scope.ServiceProvider.GetRequiredService<ICustomerRepository>(), work).ExecuteAsync("After cancellation");
@@ -322,28 +336,34 @@ public sealed class OraclePersistenceTests : TestDatabase
         Assert.Equal(1, await CountCustomersAsync());
     }
 
-    // Ordinary Oracle reads use MVCC and do not wait for row locks. A temporary
-    // view invokes a sleeping function so the real repository/query SQL is running.
-    // Short sleeps let PL/SQL process cancellation between calls. A single long
-    // SLEEP can defer cancellation until that PL/SQL call returns.
-    private async Task<Guid> InstallSlowCustomerViewAsync()
+    // MVCC reads do not wait on row locks. This test-only view invokes a function
+    // that waits on a separate gate row, keeping the actual query/repository SQL active.
+    private async Task<Guid> InstallBlockingCustomerViewAsync()
     {
         await using var connection = new OracleConnection(ConnectionString);
         var id = Guid.NewGuid();
-        await connection.ExecuteAsync("INSERT INTO CUSTOMERS (ID, NAME) VALUES (:Id, 'Slow')", new { Id = id.ToByteArray() });
+        await connection.ExecuteAsync("INSERT INTO CUSTOMERS (ID, NAME) VALUES (:Id, 'Blocked')", new { Id = id.ToByteArray() });
         await connection.ExecuteAsync("ALTER TABLE CUSTOMERS RENAME TO CUSTOMER_ROWS");
+        await connection.ExecuteAsync("CREATE TABLE CANCELLATION_GATE (ID NUMBER PRIMARY KEY)");
+        await connection.ExecuteAsync("INSERT INTO CANCELLATION_GATE (ID) VALUES (1)");
         await connection.ExecuteAsync("""
-            CREATE FUNCTION SLOW_NAME(value NVARCHAR2) RETURN NVARCHAR2 AS
+            CREATE FUNCTION BLOCKED_NAME(value NVARCHAR2) RETURN NVARCHAR2 AS
+                PRAGMA AUTONOMOUS_TRANSACTION;
+                gate_id NUMBER;
             BEGIN
-                FOR i IN 1..300 LOOP DBMS_SESSION.SLEEP(0.1); END LOOP;
+                SELECT ID INTO gate_id FROM CANCELLATION_GATE WHERE ID = 1 FOR UPDATE;
+                ROLLBACK;
                 RETURN value;
+            EXCEPTION WHEN OTHERS THEN
+                ROLLBACK;
+                RAISE;
             END;
             """);
-        await connection.ExecuteAsync("CREATE VIEW CUSTOMERS AS SELECT ID, SLOW_NAME(NAME) NAME FROM CUSTOMER_ROWS");
+        await connection.ExecuteAsync("CREATE VIEW CUSTOMERS AS SELECT ID, BLOCKED_NAME(NAME) NAME FROM CUSTOMER_ROWS");
         return id;
     }
 
-    private async Task RemoveSlowCustomerViewAsync()
+    private async Task RemoveBlockingCustomerViewAsync()
     {
         await using var connection = new OracleConnection(ConnectionString);
         await connection.ExecuteAsync("DROP VIEW CUSTOMERS");
@@ -363,11 +383,11 @@ public sealed class OraclePersistenceTests : TestDatabase
             }
             if (await observer.ExecuteScalarAsync<int>("""
                 SELECT COUNT(*) FROM V$SESSION
-                WHERE USERNAME = :Username AND EVENT = 'PL/SQL lock timer' AND STATE = 'WAITING'
+                WHERE USERNAME = :Username AND EVENT = 'enq: TX - row lock contention' AND STATE = 'WAITING' AND BLOCKING_SESSION IS NOT NULL
                 """, new { Username = SchemaName }) > 0) return;
             await Task.Delay(20);
         }
-        Assert.Fail("The query did not reach the Oracle sleep function before cancellation.");
+        Assert.Fail("The query did not reach the Oracle row lock wait before cancellation.");
     }
 
     private static Task<int> InsertWithDapper(OpenBaseDbContext context, string name, CancellationToken token) =>

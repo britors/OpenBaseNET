@@ -10,13 +10,6 @@ namespace OpenBaseNET.Tests.Integration;
 // Each test owns a generated schema inside the configured test PDB.
 public abstract class TestDatabase : IAsyncLifetime
 {
-    static TestDatabase()
-    {
-        // Use in-band cancellation across host-to-container port forwarding.
-        // Configure once, before any connection; application defaults remain unchanged.
-        OracleConfiguration.DisableOOB = true;
-    }
-
     protected string SchemaName { get; } = "OB_TEST_" + Guid.NewGuid().ToString("N").ToUpperInvariant();
     protected string AdminConnectionString { get; private set; } = "";
     protected string ConnectionString { get; private set; } = "";

@@ -101,25 +101,17 @@ V$SESSION. Os testes criam `OB_TEST_<guid>` por caso e removem apenas esse schem
 Pooling fica desabilitado nas conexões desses testes para permitir remover os usuários
 depois de encerrar as sessões. Falta de servidor/configuração é falha, nunca skip.
 
-A suíte configura `OracleConfiguration.DisableOOB=true` antes de abrir conexões para
-enviar cancelamento pelo canal TCP normal (in-band) através da porta do container. Isso
-não altera o padrão da aplicação. Redes que descartam dados TCP urgentes podem exigir
-essa mesma configuração no startup, antes da primeira conexão, ou `DISABLE_OOB=ON` em
-sqlnet.ora. Veja a [configuração de transporte do ODP.NET](https://docs.oracle.com/en/database/oracle/oracle-database/26/odpnt/InstallManagedConfig.html).
-Pipelining permanece desabilitado: o ODP.NET não suporta cancelamento quando ele está ativo.
-
 ```bash
 dotnet test OpenBaseNET.sln --no-build --configuration Release
 ```
 
 A suíte cobre migrations/snapshot, contratos HTTP comuns, CRUD, paginação, RAW/GUID,
 commit/rollback misturando EF/Dapper, erros SQL, falha no SaveChanges e no commit por
-constraint diferida, descarte e reutilização do escopo. Para cancelamento, uma view
-temporária de teste chama DBMS_SESSION.SLEEP durante as consultas reais dos adaptadores.
-A função usa esperas curtas em loop, pois uma chamada PL/SQL longa pode adiar o
-processamento do cancelamento até retornar. Um observador confirma a espera em V$SESSION
-antes de cancelar; não basta um token
-previamente cancelado. A view existe apenas no schema isolado desse teste.
+constraint diferida, descarte e reutilização do escopo. Para cancelamento, uma view temporária de teste chama uma função com transação
+autônoma que aguarda um lock de linha mantido por outra conexão. Um observador confirma
+a espera em V$SESSION antes de cancelar as consultas reais EF/Dapper; não basta um token
+previamente cancelado. A conexão bloqueadora libera o lock em finally, inclusive em
+falha. A view e a função existem apenas no schema isolado desse teste.
 
 Referências: [provider oficial no NuGet](https://www.nuget.org/packages/Oracle.EntityFrameworkCore/10.23.26301),
 [API do provider Oracle](https://docs.oracle.com/en/database/oracle/oracle-database/26/odpnt/EFCoreAPI.html)
