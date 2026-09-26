@@ -76,7 +76,10 @@ PostgreSQL. Não habilitamos READ_COMMITTED_SNAPSHOT, MARS ou retry de escrita a
 EF e Dapper compartilham a conexão e transação do DbContext; o escopo não suporta comandos
 paralelos. A unidade de trabalho confirma uma vez e limpa o tracking ao finalizar.
 
-Cancelamento chega ao SqlClient. Falhas provocam rollback e preservam a exceção original
+Cancelamento chega ao SqlClient. Quando o driver retorna SqlException para uma operação
+cujo token está cancelado, o adaptador normaliza para OperationCanceledException, preservando
+o erro original como InnerException. Sem cancelamento solicitado, o erro SQL continua
+sendo propagado normalmente. Falhas provocam rollback e preservam a exceção original
 se a limpeza também falhar. Em perda de conexão durante commit, o resultado pode ser
 desconhecido; não há repetição automática. Descartar um escopo com falha de limpeza antes
 de iniciar nova operação. Detalhes comuns estão no [contrato do núcleo](core.md).

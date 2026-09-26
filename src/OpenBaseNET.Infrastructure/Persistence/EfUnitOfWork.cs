@@ -1,4 +1,5 @@
 using System.Runtime.ExceptionServices;
+using System.Data.Common;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
@@ -33,7 +34,11 @@ internal sealed class EfUnitOfWork(OpenBaseDbContext context, ILogger<EfUnitOfWo
         }
         catch (Exception exception)
         {
-            failure = exception;
+            // SqlClient may surface cancellation as a database error instead of a cancelled task.
+            failure = cancellationToken.IsCancellationRequested
+                && (exception is DbException || exception is DbUpdateException { InnerException: DbException })
+                ? new OperationCanceledException("Database operation was canceled.", exception, cancellationToken)
+                : exception;
             if (transaction is not null)
             {
                 try
@@ -46,6 +51,7 @@ internal sealed class EfUnitOfWork(OpenBaseDbContext context, ILogger<EfUnitOfWo
                     logger.LogWarning(cleanup, "Rollback failed; discard this scope before retrying an operation.");
                 }
             }
+            if (!ReferenceEquals(failure, exception)) throw failure;
             throw;
         }
         finally

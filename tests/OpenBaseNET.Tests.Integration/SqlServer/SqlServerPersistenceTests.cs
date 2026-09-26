@@ -236,9 +236,10 @@ public sealed class SqlServerPersistenceTests : TestDatabase
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task Running_query_honors_cancellation_and_releases_connection(bool ef)
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task Running_query_honors_cancellation_and_releases_connection(bool ef, bool transactional)
     {
         await using var provider = BuildProvider();
         await using var scope = provider.CreateAsyncScope();
@@ -249,16 +250,18 @@ public sealed class SqlServerPersistenceTests : TestDatabase
         await blocker.OpenAsync();
         await using var blockingTransaction = await blocker.BeginTransactionAsync();
         await blocker.ExecuteAsync("SELECT COUNT_BIG(*) FROM dbo.customers WITH (TABLOCKX, HOLDLOCK)", transaction: blockingTransaction);
-        var operation = work.ExecuteAsync(async token =>
+        async Task<bool> QueryAsync(CancellationToken token)
         {
             if (ef) await scope.ServiceProvider.GetRequiredService<ICustomerRepository>().GetAsync(Guid.NewGuid(), token);
             else await scope.ServiceProvider.GetRequiredService<ICustomerQueries>().ListAsync(new CustomerPage(), token);
             return true;
-        }, cancellation.Token);
+        }
+        var operation = transactional ? work.ExecuteAsync(QueryAsync, cancellation.Token) : QueryAsync(cancellation.Token);
 
         await WaitForBlockedQueryAsync();
         cancellation.Cancel();
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => operation.WaitAsync(TimeSpan.FromSeconds(5)));
+        var error = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => operation.WaitAsync(TimeSpan.FromSeconds(5)));
+        Assert.Equal(cancellation.Token, error.CancellationToken);
         await blockingTransaction.RollbackAsync();
         Assert.Null(context.Database.CurrentTransaction);
         Assert.Equal(ConnectionState.Closed, context.Database.GetDbConnection().State);
