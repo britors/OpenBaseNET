@@ -1,14 +1,14 @@
 using Dapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Npgsql;
+using Microsoft.Data.SqlClient;
 using OpenBaseNET.Infrastructure;
 using OpenBaseNET.Infrastructure.Persistence;
 
 namespace OpenBaseNET.Tests.Integration;
 
 // Each test owns a fresh database. Missing configuration/server is a failure, never a skip.
-public abstract class PostgresTestDatabase : IAsyncLifetime
+public abstract class TestDatabase : IAsyncLifetime
 {
     private readonly string databaseName = "ob_test_" + Guid.NewGuid().ToString("N");
     private string adminConnectionString = "";
@@ -17,13 +17,14 @@ public abstract class PostgresTestDatabase : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        adminConnectionString = Environment.GetEnvironmentVariable("OPENBASE_TEST_POSTGRES")
-            ?? throw new InvalidOperationException("Set OPENBASE_TEST_POSTGRES to a PostgreSQL server with CREATE DATABASE permission.");
-        var builder = new NpgsqlConnectionStringBuilder(adminConnectionString) { Database = databaseName };
+        adminConnectionString = Environment.GetEnvironmentVariable("OPENBASE_TEST_SQLSERVER")
+            ?? throw new InvalidOperationException("Set OPENBASE_TEST_SQLSERVER to a SQL Server with CREATE DATABASE permission.");
+        adminConnectionString = new SqlConnectionStringBuilder(adminConnectionString) { InitialCatalog = "master" }.ConnectionString;
+        var builder = new SqlConnectionStringBuilder(adminConnectionString) { InitialCatalog = databaseName };
         ConnectionString = builder.ConnectionString;
-        await using var admin = new NpgsqlConnection(adminConnectionString);
+        await using var admin = new SqlConnection(adminConnectionString);
         await admin.OpenAsync();
-        await admin.ExecuteAsync($"CREATE DATABASE \"{databaseName}\"");
+        await admin.ExecuteAsync($"CREATE DATABASE [{databaseName}]");
         created = true;
         try
         {
@@ -42,25 +43,31 @@ public abstract class PostgresTestDatabase : IAsyncLifetime
     {
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddPostgresPersistence(ConnectionString);
+        services.AddPersistence(ConnectionString);
         return services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true });
     }
 
     protected async Task<long> CountCustomersAsync()
     {
-        await using var connection = new NpgsqlConnection(ConnectionString);
-        return await connection.ExecuteScalarAsync<long>("SELECT count(*) FROM public.customers");
+        await using var connection = new SqlConnection(ConnectionString);
+        return await connection.ExecuteScalarAsync<long>("SELECT count_big(*) FROM dbo.customers");
+    }
+
+    protected async Task DropCustomerTable()
+    {
+        await using var connection = new SqlConnection(ConnectionString);
+        await connection.ExecuteAsync("DROP TABLE dbo.customers");
     }
 
     public async Task DisposeAsync()
     {
         if (!created) return;
         // Name is generated internally and never taken from the configured database name.
-        await using var admin = new NpgsqlConnection(adminConnectionString);
+        await using var admin = new SqlConnection(adminConnectionString);
         await admin.OpenAsync();
-        await admin.ExecuteAsync($"DROP DATABASE \"{databaseName}\" WITH (FORCE)");
+        await admin.ExecuteAsync($"ALTER DATABASE [{databaseName}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{databaseName}]");
         created = false;
-        using var poolKey = new NpgsqlConnection(ConnectionString);
-        NpgsqlConnection.ClearPool(poolKey);
+        using var poolKey = new SqlConnection(ConnectionString);
+        SqlConnection.ClearPool(poolKey);
     }
 }

@@ -7,7 +7,7 @@ var connectionString = builder.Configuration.GetConnectionString("Default");
 if (string.IsNullOrWhiteSpace(connectionString))
     throw new InvalidOperationException("Configure ConnectionStrings:Default using User Secrets or environment variables.");
 
-builder.Services.AddPostgresPersistence(connectionString);
+builder.Services.AddPersistence(connectionString);
 builder.Services.AddScoped<CreateCustomer>();
 builder.Services.AddScoped<GetCustomer>();
 builder.Services.AddScoped<ListCustomers>();

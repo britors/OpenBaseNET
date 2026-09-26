@@ -4,7 +4,7 @@ using Dapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
-using Npgsql;
+using Microsoft.Data.SqlClient;
 using OpenBaseNET.Application.Customers;
 using OpenBaseNET.Application.Ports;
 using OpenBaseNET.Domain.Customers;
@@ -13,7 +13,7 @@ using OpenBaseNET.Infrastructure.Persistence;
 
 namespace OpenBaseNET.Tests.Integration;
 
-public sealed class PostgresPersistenceTests : PostgresTestDatabase
+public sealed class SqlServerPersistenceTests : TestDatabase
 {
     [Fact]
     public async Task Migrations_are_repeatable_and_model_matches_snapshot()
@@ -33,8 +33,8 @@ public sealed class PostgresPersistenceTests : PostgresTestDatabase
     {
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddPostgresPersistence(ConnectionString);
-        services.AddPostgresPersistence(ConnectionString);
+        services.AddPersistence(ConnectionString);
+        services.AddPersistence(ConnectionString);
         await using var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });
         await using var scope = provider.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenBaseDbContext>();
@@ -69,10 +69,10 @@ public sealed class PostgresPersistenceTests : PostgresTestDatabase
     [Fact]
     public async Task Pagination_orders_before_limiting_and_uses_unique_tiebreaker()
     {
-        await using var connection = new NpgsqlConnection(ConnectionString);
+        await using var connection = new SqlConnection(ConnectionString);
         var ids = Enumerable.Range(1, 5).Select(i => Guid.Parse($"00000000-0000-0000-0000-{i:000000000000}")).ToArray();
         foreach (var index in new[] { 4, 2, 0, 3, 1 })
-            await connection.ExecuteAsync("INSERT INTO public.customers (id, name) VALUES (@Id, @Name)",
+            await connection.ExecuteAsync("INSERT INTO dbo.customers (id, name) VALUES (@Id, @Name)",
                 new { Id = ids[index], Name = index == 4 ? "Bea" : "Ana" });
 
         await using var provider = BuildProvider();
@@ -102,13 +102,56 @@ public sealed class PostgresPersistenceTests : PostgresTestDatabase
             Assert.NotNull(await queries.GetAsync(customer.Id, token));
             await InsertWithDapper(context, "Dapper", token);
             Assert.Equal(2, (await queries.ListAsync(new CustomerPage(), token)).Count);
-            Assert.Equal(0, await CountCustomersAsync());
             return true;
         }, default);
         Assert.Equal(2, await CountCustomersAsync());
         Assert.Null(context.Database.CurrentTransaction);
         Assert.Empty(context.ChangeTracker.Entries());
         Assert.Equal(ConnectionState.Closed, context.Database.GetDbConnection().State);
+    }
+
+    [Fact]
+    public async Task Uniqueidentifier_tiebreaker_uses_SQL_Server_order_not_dotnet_Guid_order()
+    {
+        var first = Guid.Parse("00000001-0000-0000-0000-000000000000");
+        var second = Guid.Parse("00000000-0000-0000-0000-000000000001");
+        Assert.True(first.CompareTo(second) > 0);
+        await using var connection = new SqlConnection(ConnectionString);
+        foreach (var id in new[] { second, first })
+            await connection.ExecuteAsync("INSERT INTO dbo.customers (id, name) VALUES (@Id, N'Ana')", new { Id = id });
+        await using var provider = BuildProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var list = new ListCustomers(scope.ServiceProvider.GetRequiredService<ICustomerQueries>());
+        Assert.Equal(first, Assert.Single(await list.ExecuteAsync(1, 1)).Id);
+        Assert.Equal(second, Assert.Single(await list.ExecuteAsync(2, 1)).Id);
+    }
+
+    [Fact]
+    public async Task SQL_error_preserves_exception_and_rolls_back_both_writers_without_retry()
+    {
+        await using var provider = BuildProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<OpenBaseDbContext>();
+        var repository = scope.ServiceProvider.GetRequiredService<ICustomerRepository>();
+        var work = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+        var calls = 0;
+        var error = await Assert.ThrowsAsync<SqlException>(() => work.ExecuteAsync(async token =>
+        {
+            calls++;
+            repository.Add(Customer.Create("EF"));
+            await context.SaveChangesAsync(token);
+            await InsertWithDapper(context, "Dapper", token);
+            await context.Database.GetDbConnection().ExecuteAsync(new CommandDefinition(
+                "THROW 51000, 'Integration failure', 1;", transaction: context.Database.CurrentTransaction!.GetDbTransaction(), cancellationToken: token));
+            return true;
+        }, default));
+        Assert.Equal(51000, error.Number);
+        Assert.Equal(1, calls);
+        Assert.Equal(0, await CountCustomersAsync());
+        Assert.Empty(context.ChangeTracker.Entries());
+        Assert.Null(context.Database.CurrentTransaction);
+        await new CreateCustomer(repository, work).ExecuteAsync("After SQL failure");
+        Assert.Equal(1, await CountCustomersAsync());
     }
 
     [Fact]
@@ -150,7 +193,7 @@ public sealed class PostgresPersistenceTests : PostgresTestDatabase
             calls++;
             repository.Add(customer);
             await context.Database.GetDbConnection().ExecuteAsync(new CommandDefinition(
-                "INSERT INTO public.customers (id, name) VALUES (@Id, @Name)",
+                "INSERT INTO dbo.customers (id, name) VALUES (@Id, @Name)",
                 new { customer.Id, customer.Name }, context.Database.CurrentTransaction!.GetDbTransaction(), cancellationToken: token));
             return true;
         }, default));
@@ -174,34 +217,6 @@ public sealed class PostgresPersistenceTests : PostgresTestDatabase
             await Assert.ThrowsAsync<InvalidOperationException>(() => work.ExecuteAsync(_ => Task.FromResult(0), token));
             return true;
         }, default);
-        Assert.Equal(1, await CountCustomersAsync());
-    }
-
-    [Fact]
-    public async Task Deferred_constraint_failure_at_commit_preserves_original_error_without_retry()
-    {
-        await using var connection = new NpgsqlConnection(ConnectionString);
-        await connection.ExecuteAsync("ALTER TABLE public.customers ADD CONSTRAINT unique_name UNIQUE (name) DEFERRABLE INITIALLY DEFERRED");
-        await using var provider = BuildProvider();
-        await using var scope = provider.CreateAsyncScope();
-        var context = scope.ServiceProvider.GetRequiredService<OpenBaseDbContext>();
-        var repository = scope.ServiceProvider.GetRequiredService<ICustomerRepository>();
-        var work = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-        var calls = 0;
-        var error = await Assert.ThrowsAsync<PostgresException>(() => work.ExecuteAsync(async token =>
-        {
-            calls++;
-            repository.Add(Customer.Create("Duplicate"));
-            await context.SaveChangesAsync(token);
-            await InsertWithDapper(context, "Duplicate", token);
-            return true;
-        }, default));
-        Assert.Equal(PostgresErrorCodes.UniqueViolation, error.SqlState);
-        Assert.Equal(1, calls);
-        Assert.Equal(0, await CountCustomersAsync());
-        Assert.Null(context.Database.CurrentTransaction);
-        Assert.Empty(context.ChangeTracker.Entries());
-        await new CreateCustomer(repository, work).ExecuteAsync("After commit failure");
         Assert.Equal(1, await CountCustomersAsync());
     }
 
@@ -230,10 +245,10 @@ public sealed class PostgresPersistenceTests : PostgresTestDatabase
         var context = scope.ServiceProvider.GetRequiredService<OpenBaseDbContext>();
         var work = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-        await using var blocker = new NpgsqlConnection(ConnectionString);
+        await using var blocker = new SqlConnection(ConnectionString);
         await blocker.OpenAsync();
         await using var blockingTransaction = await blocker.BeginTransactionAsync();
-        await blocker.ExecuteAsync("LOCK TABLE public.customers IN ACCESS EXCLUSIVE MODE", transaction: blockingTransaction);
+        await blocker.ExecuteAsync("SELECT COUNT_BIG(*) FROM dbo.customers WITH (TABLOCKX, HOLDLOCK)", transaction: blockingTransaction);
         var operation = work.ExecuteAsync(async token =>
         {
             if (ef) await scope.ServiceProvider.GetRequiredService<ICustomerRepository>().GetAsync(Guid.NewGuid(), token);
@@ -276,21 +291,22 @@ public sealed class PostgresPersistenceTests : PostgresTestDatabase
 
     private async Task WaitForBlockedQueryAsync()
     {
-        await using var observer = new NpgsqlConnection(ConnectionString);
+        await using var observer = new SqlConnection(ConnectionString);
         var timer = Stopwatch.StartNew();
         while (timer.Elapsed < TimeSpan.FromSeconds(5))
         {
             if (await observer.ExecuteScalarAsync<bool>("""
-                SELECT EXISTS(SELECT 1 FROM pg_stat_activity
-                WHERE datname = current_database() AND wait_event_type = 'Lock' AND state = 'active')
+                SELECT CAST(CASE WHEN EXISTS(SELECT 1 FROM sys.dm_exec_requests
+                WHERE database_id = DB_ID() AND blocking_session_id > 0 AND wait_type LIKE 'LCK_M_%')
+                THEN 1 ELSE 0 END AS bit)
                 """)) return;
             await Task.Delay(20);
         }
-        Assert.Fail("The query did not reach a PostgreSQL lock wait before cancellation.");
+        Assert.Fail("The query did not reach a SQL Server lock wait before cancellation.");
     }
 
     private static Task<int> InsertWithDapper(OpenBaseDbContext context, string name, CancellationToken token) =>
         context.Database.GetDbConnection().ExecuteAsync(new CommandDefinition(
-            "INSERT INTO public.customers (id, name) VALUES (@Id, @Name)", new { Id = Guid.NewGuid(), Name = name },
+            "INSERT INTO dbo.customers (id, name) VALUES (@Id, @Name)", new { Id = Guid.NewGuid(), Name = name },
             context.Database.CurrentTransaction!.GetDbTransaction(), cancellationToken: token));
 }

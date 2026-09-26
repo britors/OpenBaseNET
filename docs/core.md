@@ -2,8 +2,8 @@
 
 Implementação da issue #2. `src/OpenBaseNET.Domain` e `src/OpenBaseNET.Application`
 compilam com .NET 10 e não têm pacotes externos. O mesmo código será incluído nas três
-variantes; não há seleção de banco nesses projetos. Infrastructure/PostgreSQL e Api já
-completam os quatro projetos de produção; veja a [integração PostgreSQL](postgres.md).
+variantes; não há condicionais de banco no núcleo. Infrastructure e Api completam os quatro
+projetos de produção; veja [PostgreSQL](postgres.md) e [SQL Server](sqlserver.md).
 
 ## Domínio e casos de uso
 
@@ -97,5 +97,6 @@ portas. Não usam banco, HTTP, Moq, MediatR ou AutoMapper. A CI executa no Linux
 
 Esses doubles **não provam rollback, durabilidade, ordenação SQL ou compartilhamento de
 transação EF/Dapper**. A suíte de integração PostgreSQL da #3 verifica esses cenários em
-banco real; SQL Server/Oracle continuam nas #10/#11. A comparação do núcleo entre aplicações
+banco real; a variante SQL Server possui a mesma suíte HTTP e testes específicos de persistência.
+Oracle continua na #11. A comparação do núcleo entre aplicações
 efetivamente geradas depende da #6. Não há template NuGet unificado ou comandos novos de CLI publicados.

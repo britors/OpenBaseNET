@@ -2,15 +2,13 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using Dapper;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Npgsql;
 using OpenBaseNET.Application.Customers;
 
 namespace OpenBaseNET.Tests.Integration;
 
-public sealed class CustomerApiTests : PostgresTestDatabase
+public sealed class CustomerApiTests : TestDatabase
 {
     [Fact]
     public async Task HTTP_CRUD_returns_expected_statuses_and_location()
@@ -81,15 +79,10 @@ public sealed class CustomerApiTests : PostgresTestDatabase
         await AssertProblem(response, 500, "INTERNAL_ERROR");
         var body = await response.Content.ReadAsStringAsync();
         Assert.DoesNotContain("Npgsql", body);
+        Assert.DoesNotContain("SqlClient", body);
         Assert.DoesNotContain("customers", body);
         Assert.DoesNotContain("SELECT", body);
         Assert.DoesNotContain(ConnectionString, body);
-    }
-
-    private async Task DropCustomerTable()
-    {
-        await using var connection = new NpgsqlConnection(ConnectionString);
-        await connection.ExecuteAsync("DROP TABLE public.customers");
     }
 
     private static async Task AssertProblem(HttpResponseMessage response, int status, string code)

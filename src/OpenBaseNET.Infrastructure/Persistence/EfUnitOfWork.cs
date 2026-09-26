@@ -4,9 +4,9 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 using OpenBaseNET.Application.Ports;
 
-namespace OpenBaseNET.Infrastructure.Persistence.Postgres;
+namespace OpenBaseNET.Infrastructure.Persistence;
 
-internal sealed class PostgresUnitOfWork(OpenBaseDbContext context, ILogger<PostgresUnitOfWork> logger) : IUnitOfWork
+internal sealed class EfUnitOfWork(OpenBaseDbContext context, ILogger<EfUnitOfWork> logger) : IUnitOfWork
 {
     private int active;
 

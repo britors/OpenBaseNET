@@ -2,9 +2,9 @@ using Microsoft.EntityFrameworkCore;
 using OpenBaseNET.Application.Ports;
 using OpenBaseNET.Domain.Customers;
 
-namespace OpenBaseNET.Infrastructure.Persistence.Postgres;
+namespace OpenBaseNET.Infrastructure.Persistence;
 
-internal sealed class PostgresCustomerRepository(OpenBaseDbContext context) : ICustomerRepository
+internal sealed class EfCustomerRepository(OpenBaseDbContext context) : ICustomerRepository
 {
     public void Add(Customer customer)
     {

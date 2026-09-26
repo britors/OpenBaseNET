@@ -1,0 +1,6 @@
+<Project>
+  <Target Name="ValidateDatabaseSelection" BeforeTargets="CollectPackageReferences;PrepareForBuild">
+    <Error Condition="'$(OpenBaseDatabase)' != 'postgres' and '$(OpenBaseDatabase)' != 'sqlserver'"
+           Text="OpenBaseDatabase must be postgres or sqlserver. Oracle is not implemented yet." />
+  </Target>
+</Project>

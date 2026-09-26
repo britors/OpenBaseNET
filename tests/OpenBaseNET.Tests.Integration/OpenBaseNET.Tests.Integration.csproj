@@ -11,5 +11,7 @@
     <ProjectReference Include="../../src/OpenBaseNET.Api/OpenBaseNET.Api.csproj" />
     <ProjectReference Include="../../src/OpenBaseNET.Infrastructure/OpenBaseNET.Infrastructure.csproj" />
     <Using Include="Xunit" />
+    <Compile Remove="Postgres/**/*.cs" Condition="'$(OpenBaseDatabase)' != 'postgres'" />
+    <Compile Remove="SqlServer/**/*.cs" Condition="'$(OpenBaseDatabase)' != 'sqlserver'" />
   </ItemGroup>
 </Project>

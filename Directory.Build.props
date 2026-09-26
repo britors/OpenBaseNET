@@ -1,5 +1,9 @@
 <Project>
   <PropertyGroup>
+    <OpenBaseDatabase Condition="'$(OpenBaseDatabase)' == ''">postgres</OpenBaseDatabase>
+    <BaseIntermediateOutputPath>obj/$(OpenBaseDatabase)/</BaseIntermediateOutputPath>
+    <BaseOutputPath>bin/$(OpenBaseDatabase)/</BaseOutputPath>
+    <DefaultItemExcludes>$(DefaultItemExcludes);obj/**;bin/**</DefaultItemExcludes>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
