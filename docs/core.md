@@ -2,8 +2,8 @@
 
 Implementação da issue #2. `src/OpenBaseNET.Domain` e `src/OpenBaseNET.Application`
 compilam com .NET 10 e não têm pacotes externos. O mesmo código será incluído nas três
-variantes; não há seleção de banco nesses projetos. Os adaptadores Infrastructure e Api
-serão acrescentados nas próximas etapas, completando os quatro projetos de produção.
+variantes; não há seleção de banco nesses projetos. Infrastructure/PostgreSQL e Api já
+completam os quatro projetos de produção; veja a [integração PostgreSQL](postgres.md).
 
 ## Domínio e casos de uso
 
@@ -62,9 +62,9 @@ para um mesmo conjunto de dados no mesmo banco, sem prometer equivalência de co
 entre engines. Escritas concorrentes podem deslocar páginas; não há snapshot entre chamadas.
 Uma página após o fim retorna coleção vazia, sem contagem total implícita.
 
-## Contrato HTTP para o adaptador futuro
+## Contrato HTTP
 
-O núcleo não conhece códigos HTTP. Api fará o mapeamento abaixo e terá seus próprios testes:
+O núcleo não conhece códigos HTTP. Api faz o mapeamento abaixo, validado por testes HTTP:
 
 | Resultado | Resposta HTTP |
 | --- | --- |
@@ -87,7 +87,7 @@ Consumidores não devem inferir códigos a partir do texto das mensagens.
 ```bash
 dotnet restore OpenBaseNET.sln
 dotnet build OpenBaseNET.sln --no-restore --configuration Release
-dotnet test OpenBaseNET.sln --no-build --configuration Release
+dotnet test tests/OpenBaseNET.Tests.Unit --no-build --configuration Release
 ```
 
 Os testes usam doubles que registram consultas, alterações, entrada na unidade de trabalho
@@ -96,6 +96,6 @@ propagação de tokens/erros, espera pelo commit e dependências dos assemblies/
 portas. Não usam banco, HTTP, Moq, MediatR ou AutoMapper. A CI executa no Linux e no Windows.
 
 Esses doubles **não provam rollback, durabilidade, ordenação SQL ou compartilhamento de
-transação EF/Dapper**. Essas verificações pertencem às issues #3, #10 e #11. A comparação
-do núcleo entre aplicações efetivamente geradas depende da #6. Não há API executável,
-template NuGet unificado ou comandos novos de CLI publicados nesta etapa.
+transação EF/Dapper**. A suíte de integração PostgreSQL da #3 verifica esses cenários em
+banco real; SQL Server/Oracle continuam nas #10/#11. A comparação do núcleo entre aplicações
+efetivamente geradas depende da #6. Não há template NuGet unificado ou comandos novos de CLI publicados.

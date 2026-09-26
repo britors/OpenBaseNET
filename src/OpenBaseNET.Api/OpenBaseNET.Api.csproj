@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <UserSecretsId>OpenBaseNET-Development</UserSecretsId>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../OpenBaseNET.Application/OpenBaseNET.Application.csproj" />
+    <ProjectReference Include="../OpenBaseNET.Infrastructure/OpenBaseNET.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

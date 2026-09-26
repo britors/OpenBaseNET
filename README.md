@@ -3,10 +3,9 @@
 Base unificada para templates .NET com arquitetura hexagonal e adaptadores PostgreSQL,
 SQL Server e Oracle. O desenvolvimento é acompanhado no [plano de execução #7](https://github.com/britors/OpenBaseNET/issues/7).
 
-Os contratos do M1 estão definidos. O núcleo Domain/Application já implementa os cinco
-casos de uso de Customer, com testes independentes de banco. Adaptadores, template unificado
-e comandos novos abaixo ainda serão implementados nas etapas M2/M3; não há pacote unificado
-publicado por este repositório.
+Os contratos do M1 estão definidos. Os quatro projetos de produção já implementam Customer
+com API HTTP, persistência PostgreSQL, migrations e testes reais. SQL Server, Oracle, template
+unificado e comandos novos abaixo continuam nas etapas M2/M3; não há pacote unificado publicado.
 
 ## Experiência definida
 
@@ -23,6 +22,7 @@ projetos de produção e somente os arquivos e dependências do banco escolhido.
 ## Contratos
 
 - [Núcleo implementado, testes e contrato dos adaptadores](docs/core.md)
+- [PostgreSQL: configuração, migrations, API e testes reais](docs/postgres.md)
 - [Arquitetura e direção das dependências](docs/adr/0001-hexagonal-architecture.md)
 - [Criação, opções e compatibilidade](docs/contracts/creation.md)
 - [Manifesto e descoberta de projetos](docs/contracts/project-manifest.md)
@@ -42,11 +42,12 @@ e Application usam somente a biblioteca padrão do .NET.
 ```bash
 dotnet restore OpenBaseNET.sln
 dotnet build OpenBaseNET.sln --no-restore --configuration Release
-dotnet test OpenBaseNET.sln --no-build --configuration Release
+dotnet test tests/OpenBaseNET.Tests.Unit --no-build --configuration Release
 ```
 
-A CI valida o núcleo no Linux e no Windows. Os dois projetos de produção atuais serão
-completados por Infrastructure e Api; não há servidor HTTP ou adaptador de banco nesta etapa.
+A CI valida o núcleo e o build no Linux/Windows; outra matriz executa testes reais com
+PostgreSQL 16 e 18. Para a suíte completa, configure `OPENBASE_TEST_POSTGRES` conforme
+a [documentação do adaptador](docs/postgres.md) e execute `dotnet test OpenBaseNET.sln`.
 
 ## Validar os contratos
 
