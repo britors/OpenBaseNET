@@ -1,0 +1,11 @@
+{
+  "protocolVersion": 1,
+  "command": "new",
+  "ok": false,
+  "data": null,
+  "error": {
+    "code": "ARGUMENT_CONFLICT",
+    "message": "--database and --template select different providers."
+  },
+  "warnings": []
+}

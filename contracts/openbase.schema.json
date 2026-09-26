@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/britors/OpenBaseNET/main/contracts/openbase.schema.json",
+  "title": "OpenBase project manifest v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "template",
+    "templateVersion",
+    "architecture",
+    "database",
+    "rootNamespace",
+    "solution",
+    "projects",
+    "persistence"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "const": "https://raw.githubusercontent.com/britors/OpenBaseNET/main/contracts/openbase.schema.json"
+    },
+    "schemaVersion": {
+      "const": 2
+    },
+    "template": {
+      "const": "openbasenet"
+    },
+    "templateVersion": {
+      "$ref": "#/$defs/version"
+    },
+    "cliVersion": {
+      "$ref": "#/$defs/version"
+    },
+    "architecture": {
+      "const": "hexagonal"
+    },
+    "database": {
+      "enum": [
+        "postgres",
+        "sqlserver",
+        "oracle"
+      ]
+    },
+    "rootNamespace": {
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*(?:\\.[A-Za-z_][A-Za-z0-9_]*)*$",
+      "not": {
+        "pattern": "[\\r\\n]"
+      }
+    },
+    "solution": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/relativePath"
+        },
+        {
+          "pattern": "\\.slnx?$"
+        }
+      ]
+    },
+    "projects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "domain",
+        "application",
+        "infrastructure",
+        "api"
+      ],
+      "properties": {
+        "domain": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/relativePath"
+            },
+            {
+              "pattern": "\\.csproj$"
+            }
+          ]
+        },
+        "application": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/relativePath"
+            },
+            {
+              "pattern": "\\.csproj$"
+            }
+          ]
+        },
+        "infrastructure": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/relativePath"
+            },
+            {
+              "pattern": "\\.csproj$"
+            }
+          ]
+        },
+        "api": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/relativePath"
+            },
+            {
+              "pattern": "\\.csproj$"
+            }
+          ]
+        }
+      }
+    },
+    "persistence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dbContext",
+        "migrationsPath",
+        "connectionStringName"
+      ],
+      "properties": {
+        "dbContext": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*(?:\\.[A-Za-z_][A-Za-z0-9_]*)*$",
+          "not": {
+            "pattern": "[\\r\\n]"
+          }
+        },
+        "migrationsPath": {
+          "$ref": "#/$defs/relativePath"
+        },
+        "connectionStringName": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_.-]*$",
+          "not": {
+            "pattern": "[\\r\\n]"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$",
+      "not": {
+        "pattern": "[\\r\\n]"
+      }
+    },
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//)[^\\\\:\\u0000-\\u001f\\u007f]+$",
+      "not": {
+        "pattern": "[\\\\:\\u0000-\\u001f\\u007f]"
+      }
+    }
+  }
+}

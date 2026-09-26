@@ -1,0 +1,313 @@
+{
+  "contractVersion": 1,
+  "description": "Expectations for argument selection only; generation/preflight are tested separately in M3.",
+  "cases": [
+    {
+      "name": "short-postgres",
+      "arguments": [
+        "new",
+        "-n",
+        "MinhaApi",
+        "-d",
+        "postgres"
+      ],
+      "interactive": false,
+      "expected": {
+        "exitCode": 0,
+        "database": "postgres"
+      }
+    },
+    {
+      "name": "long-postgres",
+      "arguments": [
+        "new",
+        "-n",
+        "MinhaApi",
+        "--database",
+        "postgres",
+        "--non-interactive"
+      ],
+      "interactive": true,
+      "expected": {
+        "exitCode": 0,
+        "database": "postgres"
+      }
+    },
+    {
+      "name": "short-sqlserver",
+      "arguments": [
+        "new",
+        "-n",
+        "MinhaApi",
+        "-d",
+        "sqlserver"
+      ],
+      "interactive": false,
+      "expected": {
+        "exitCode": 0,
+        "database": "sqlserver"
+      }
+    },
+    {
+      "name": "long-sqlserver",
+      "arguments": [
+        "new",
+        "-n",
+        "MinhaApi",
+        "--database",
+        "sqlserver",
+        "--non-interactive"
+      ],
+      "interactive": true,
+      "expected": {
+        "exitCode": 0,
+        "database": "sqlserver"
+      }
+    },
+    {
+      "name": "short-oracle",
+      "arguments": [
+        "new",
+        "-n",
+        "MinhaApi",
+        "-d",
+        "oracle"
+      ],
+      "interactive": false,
+      "expected": {
+        "exitCode": 0,
+        "database": "oracle"
+      }
+    },
+    {
+      "name": "long-oracle",
+      "arguments": [
+        "new",
+        "-n",
+        "MinhaApi",
+        "--database",
+        "oracle",
+        "--non-interactive"
+      ],
+      "interactive": true,
+      "expected": {
+        "exitCode": 0,
+        "database": "oracle"
+      }
+    },
+    {
+      "name": "alias-pgsql",
+      "arguments": [
+        "new",
+        "-n",
+        "MinhaApi",
+        "-d",
+        "pgsql"
+      ],
+      "interactive": false,
+      "expected": {
+        "exitCode": 0,
+        "database": "postgres"
+      }
+    },
+    {
+      "name": "alias-postgresql",
+      "arguments": [
+        "new",
+        "-n",
+        "MinhaApi",
+        "-d",
+        "postgresql"
+      ],
+      "interactive": false,
+      "expected": {
+        "exitCode": 0,
+        "database": "postgres"
+      }
+    },
+    {
+      "name": "alias-Postgres",
+      "arguments": [
+        "new",
+        "-n",
+        "MinhaApi",
+        "-d",
+        "Postgres"
+      ],
+      "interactive": false,
+      "expected": {
+        "exitCode": 0,
+        "database": "postgres"
+      }
+    },
+    {
+      "name": "alias-POSTGRES",
+      "arguments": [
+        "new",
+        "-n",
+        "MinhaApi",
+        "-d",
+        "POSTGRES"
+      ],
+      "interactive": false,
+      "expected": {
+        "exitCode": 0,
+        "database": "postgres"
+      }
+    },
+    {
+      "name": "legacy-option",
+      "arguments": [
+        "new",
+        "-n",
+        "MinhaApi",
+        "-s",
+        "pgsql"
+      ],
+      "interactive": false,
+      "expected": {
+        "exitCode": 0,
+        "database": "postgres",
+        "warningCode": "DEPRECATED_OPTION"
+      }
+    },
+    {
+      "name": "matching-options",
+      "arguments": [
+        "new",
+        "-n",
+        "MinhaApi",
+        "-d",
+        "postgres",
+        "-s",
+        "pgsql"
+      ],
+      "interactive": false,
+      "expected": {
+        "exitCode": 0,
+        "database": "postgres",
+        "warningCode": "DEPRECATED_OPTION"
+      }
+    },
+    {
+      "name": "conflicting-options",
+      "arguments": [
+        "new",
+        "-n",
+        "MinhaApi",
+        "-d",
+        "postgres",
+        "-s",
+        "oracle"
+      ],
+      "interactive": false,
+      "expected": {
+        "exitCode": 2,
+        "errorCode": "ARGUMENT_CONFLICT"
+      }
+    },
+    {
+      "name": "conflicting-repetitions",
+      "arguments": [
+        "new",
+        "-n",
+        "MinhaApi",
+        "-d",
+        "oracle",
+        "--database",
+        "postgres"
+      ],
+      "interactive": false,
+      "expected": {
+        "exitCode": 2,
+        "errorCode": "ARGUMENT_CONFLICT"
+      }
+    },
+    {
+      "name": "matching-repetitions",
+      "arguments": [
+        "new",
+        "-n",
+        "MinhaApi",
+        "-d",
+        "pgsql",
+        "--database",
+        "postgres"
+      ],
+      "interactive": false,
+      "expected": {
+        "exitCode": 0,
+        "database": "postgres"
+      }
+    },
+    {
+      "name": "unknown-engine",
+      "arguments": [
+        "new",
+        "-n",
+        "MinhaApi",
+        "-d",
+        "sqlite"
+      ],
+      "interactive": false,
+      "expected": {
+        "exitCode": 2,
+        "errorCode": "DATABASE_UNSUPPORTED"
+      }
+    },
+    {
+      "name": "missing-noninteractive",
+      "arguments": [
+        "new",
+        "-n",
+        "MinhaApi"
+      ],
+      "interactive": false,
+      "expected": {
+        "exitCode": 2,
+        "errorCode": "INPUT_REQUIRED"
+      }
+    },
+    {
+      "name": "missing-explicit-noninteractive",
+      "arguments": [
+        "new",
+        "-n",
+        "MinhaApi",
+        "--non-interactive"
+      ],
+      "interactive": true,
+      "expected": {
+        "exitCode": 2,
+        "errorCode": "INPUT_REQUIRED"
+      }
+    },
+    {
+      "name": "missing-json",
+      "arguments": [
+        "new",
+        "-n",
+        "MinhaApi",
+        "--json"
+      ],
+      "interactive": true,
+      "expected": {
+        "exitCode": 2,
+        "errorCode": "INPUT_REQUIRED"
+      }
+    },
+    {
+      "name": "missing-interactive",
+      "arguments": [
+        "new",
+        "-n",
+        "MinhaApi"
+      ],
+      "interactive": true,
+      "expected": {
+        "prompt": "database",
+        "exitCode": null
+      }
+    }
+  ]
+}

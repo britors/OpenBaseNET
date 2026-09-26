@@ -1,0 +1,16 @@
+{
+  "protocolVersion": 1,
+  "command": "new",
+  "ok": true,
+  "data": {
+    "projectRoot": "/work/MinhaApi",
+    "manifestPath": "/work/MinhaApi/.openbase.json"
+  },
+  "error": null,
+  "warnings": [
+    {
+      "code": "DEPRECATED_OPTION",
+      "message": "Use --database instead of --template."
+    }
+  ]
+}

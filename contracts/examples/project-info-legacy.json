@@ -1,0 +1,33 @@
+{
+  "protocolVersion": 1,
+  "command": "project.info",
+  "ok": true,
+  "data": {
+    "source": "legacy",
+    "schemaVersion": null,
+    "projectRoot": "/work/OpenBaseNETPostgres",
+    "manifestPath": "/work/OpenBaseNETPostgres/.openbase.json",
+    "architecture": "legacy",
+    "database": "postgres",
+    "rootNamespace": "OpenBaseNET",
+    "template": null,
+    "templateVersion": null,
+    "cliVersion": "10.5.9",
+    "solution": "/work/OpenBaseNETPostgres/OpenBasePgsql.sln",
+    "projects": {
+      "domain": "/work/OpenBaseNETPostgres/src/OpenBaseNET.Domain/OpenBaseNET.Domain.csproj",
+      "application": "/work/OpenBaseNETPostgres/src/OpenBaseNET.Application/OpenBaseNET.Application.csproj",
+      "infrastructure": "/work/OpenBaseNETPostgres/src/OpenBaseNET.Infra.Data/OpenBaseNET.Infra.Data.csproj",
+      "api": "/work/OpenBaseNETPostgres/src/OpenBaseNET.Presentation.Api/OpenBaseNET.Presentation.Api.csproj"
+    },
+    "persistence": {
+      "contextProject": "/work/OpenBaseNETPostgres/src/OpenBaseNET.Infra.Data.Context/OpenBaseNET.Infra.Data.Context.csproj",
+      "dbContext": "OpenBaseNET.Infra.Data.Context.OneBaseDataBaseContext",
+      "migrationsPath": "/work/OpenBaseNETPostgres/src/OpenBaseNET.Infra.Data.Context/Migrations",
+      "connectionStringName": "OpenBasePostgres"
+    },
+    "providerVerification": "notChecked"
+  },
+  "error": null,
+  "warnings": []
+}

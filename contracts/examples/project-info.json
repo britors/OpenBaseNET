@@ -1,0 +1,33 @@
+{
+  "protocolVersion": 1,
+  "command": "project.info",
+  "ok": true,
+  "data": {
+    "source": "manifest",
+    "schemaVersion": 2,
+    "projectRoot": "/work/MinhaApi",
+    "manifestPath": "/work/MinhaApi/.openbase.json",
+    "architecture": "hexagonal",
+    "database": "postgres",
+    "rootNamespace": "MinhaApi",
+    "template": "openbasenet",
+    "templateVersion": "11.0.0-preview.1",
+    "cliVersion": null,
+    "solution": "/work/MinhaApi/MinhaApi.sln",
+    "projects": {
+      "domain": "/work/MinhaApi/src/MinhaApi.Domain/MinhaApi.Domain.csproj",
+      "application": "/work/MinhaApi/src/MinhaApi.Application/MinhaApi.Application.csproj",
+      "infrastructure": "/work/MinhaApi/src/MinhaApi.Infrastructure/MinhaApi.Infrastructure.csproj",
+      "api": "/work/MinhaApi/src/MinhaApi.Api/MinhaApi.Api.csproj"
+    },
+    "persistence": {
+      "contextProject": "/work/MinhaApi/src/MinhaApi.Infrastructure/MinhaApi.Infrastructure.csproj",
+      "dbContext": "MinhaApi.Infrastructure.Persistence.OpenBaseDbContext",
+      "migrationsPath": "/work/MinhaApi/src/MinhaApi.Infrastructure/Persistence/Postgres/Migrations",
+      "connectionStringName": "Default"
+    },
+    "providerVerification": "notChecked"
+  },
+  "error": null,
+  "warnings": []
+}

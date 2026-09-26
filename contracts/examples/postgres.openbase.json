@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/britors/OpenBaseNET/main/contracts/openbase.schema.json",
+  "schemaVersion": 2,
+  "template": "openbasenet",
+  "templateVersion": "11.0.0-preview.1",
+  "architecture": "hexagonal",
+  "database": "postgres",
+  "rootNamespace": "MinhaApi",
+  "solution": "MinhaApi.sln",
+  "projects": {
+    "domain": "src/MinhaApi.Domain/MinhaApi.Domain.csproj",
+    "application": "src/MinhaApi.Application/MinhaApi.Application.csproj",
+    "infrastructure": "src/MinhaApi.Infrastructure/MinhaApi.Infrastructure.csproj",
+    "api": "src/MinhaApi.Api/MinhaApi.Api.csproj"
+  },
+  "persistence": {
+    "dbContext": "MinhaApi.Infrastructure.Persistence.OpenBaseDbContext",
+    "migrationsPath": "src/MinhaApi.Infrastructure/Persistence/Postgres/Migrations",
+    "connectionStringName": "Default"
+  }
+}

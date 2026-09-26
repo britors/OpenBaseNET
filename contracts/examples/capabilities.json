@@ -1,0 +1,32 @@
+{
+  "protocolVersion": 1,
+  "command": "capabilities",
+  "ok": true,
+  "data": {
+    "cliVersion": "11.0.0-preview.1",
+    "supportedProtocolVersions": [
+      1
+    ],
+    "supportedManifestVersions": [
+      2
+    ],
+    "supportsLegacyDiscovery": true,
+    "architectures": [
+      "hexagonal",
+      "legacy"
+    ],
+    "databases": [
+      "postgres",
+      "sqlserver",
+      "oracle"
+    ],
+    "commands": [
+      "capabilities",
+      "project.info",
+      "new"
+    ],
+    "extensions": []
+  },
+  "error": null,
+  "warnings": []
+}
