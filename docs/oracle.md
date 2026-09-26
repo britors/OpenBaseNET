@@ -41,7 +41,7 @@ O comando público planejado `openbase new -n MinhaApi -d oracle` depende das #6
 | Tabela | `CUSTOMERS`, no schema do usuário conectado |
 | ID | `RAW(16) NOT NULL`, GUID criado no domínio |
 | Nome | `NVARCHAR2(200) NOT NULL`, Unicode |
-| Paginação | `ORDER BY NAME, ID OFFSET :Offset ROWS FETCH NEXT :Size ROWS ONLY` |
+| Paginação | `ORDER BY NAME, ID OFFSET :page_offset ROWS FETCH NEXT :page_size ROWS ONLY` |
 | Índice | `IX_CUSTOMERS_NAME_ID (NAME, ID)` |
 | Histórico | `"__EFMigrationsHistory"`, no mesmo schema |
 | Snapshot | `Persistence/Oracle/Migrations/OracleModelSnapshot.cs` |
@@ -109,9 +109,15 @@ A suíte cobre migrations/snapshot, contratos HTTP comuns, CRUD, paginação, RA
 commit/rollback misturando EF/Dapper, erros SQL, falha no SaveChanges e no commit por
 constraint diferida, descarte e reutilização do escopo. Para cancelamento, uma view
 temporária de teste chama DBMS_SESSION.SLEEP durante as consultas reais dos adaptadores.
-Um observador confirma a espera em V$SESSION antes de cancelar; não basta um token
+A função usa esperas curtas em loop, pois uma chamada PL/SQL longa pode adiar o
+processamento do cancelamento até retornar. Um observador confirma a espera em V$SESSION
+antes de cancelar; não basta um token
 previamente cancelado. A view existe apenas no schema isolado desse teste.
 
 Referências: [provider oficial no NuGet](https://www.nuget.org/packages/Oracle.EntityFrameworkCore/10.23.26301),
 [API do provider Oracle](https://docs.oracle.com/en/database/oracle/oracle-database/26/odpnt/EFCoreAPI.html)
 e [imagem/integração com GitHub Actions](https://github.com/gvenzl/oci-oracle-free).
+
+A auditoria NuGet direta/transitiva da variante Oracle em 2026-09-26 não reportou
+vulnerabilidades conhecidas. A latência de cancelamento de PL/SQL é descrita na
+[documentação de OracleCommand.Cancel](https://docs.oracle.com/en/database/oracle/oracle-database/26/odpnt/CommandCancel.html).

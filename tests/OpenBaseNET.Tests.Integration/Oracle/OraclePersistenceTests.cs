@@ -288,7 +288,7 @@ public sealed class OraclePersistenceTests : TestDatabase
         }
         var operation = transactional ? work.ExecuteAsync(QueryAsync, cancellation.Token) : QueryAsync(cancellation.Token);
 
-        await WaitForBlockedQueryAsync();
+        await WaitForBlockedQueryAsync(operation);
         cancellation.Cancel();
         var error = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => operation.WaitAsync(TimeSpan.FromSeconds(5)));
         Assert.Equal(cancellation.Token, error.CancellationToken);
@@ -324,6 +324,8 @@ public sealed class OraclePersistenceTests : TestDatabase
 
     // Ordinary Oracle reads use MVCC and do not wait for row locks. A temporary
     // view invokes a sleeping function so the real repository/query SQL is running.
+    // Short sleeps let PL/SQL process cancellation between calls. A single long
+    // SLEEP can defer cancellation until that PL/SQL call returns.
     private async Task<Guid> InstallSlowCustomerViewAsync()
     {
         await using var connection = new OracleConnection(ConnectionString);
@@ -332,7 +334,10 @@ public sealed class OraclePersistenceTests : TestDatabase
         await connection.ExecuteAsync("ALTER TABLE CUSTOMERS RENAME TO CUSTOMER_ROWS");
         await connection.ExecuteAsync("""
             CREATE FUNCTION SLOW_NAME(value NVARCHAR2) RETURN NVARCHAR2 AS
-            BEGIN DBMS_SESSION.SLEEP(30); RETURN value; END;
+            BEGIN
+                FOR i IN 1..300 LOOP DBMS_SESSION.SLEEP(0.1); END LOOP;
+                RETURN value;
+            END;
             """);
         await connection.ExecuteAsync("CREATE VIEW CUSTOMERS AS SELECT ID, SLOW_NAME(NAME) NAME FROM CUSTOMER_ROWS");
         return id;
@@ -345,12 +350,17 @@ public sealed class OraclePersistenceTests : TestDatabase
         await connection.ExecuteAsync("ALTER TABLE CUSTOMER_ROWS RENAME TO CUSTOMERS");
     }
 
-    private async Task WaitForBlockedQueryAsync()
+    private async Task WaitForBlockedQueryAsync(Task operation)
     {
         await using var observer = new OracleConnection(AdminConnectionString);
         var timer = Stopwatch.StartNew();
         while (timer.Elapsed < TimeSpan.FromSeconds(10))
         {
+            if (operation.IsCompleted)
+            {
+                await operation;
+                Assert.Fail("The query completed before the cancellation probe observed it.");
+            }
             if (await observer.ExecuteScalarAsync<int>("""
                 SELECT COUNT(*) FROM V$SESSION
                 WHERE USERNAME = :Username AND EVENT = 'PL/SQL lock timer' AND STATE = 'WAITING'

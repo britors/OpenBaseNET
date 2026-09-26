@@ -24,10 +24,10 @@ internal sealed class OracleCustomerQueries(OpenBaseDbContext context) : ICustom
         var rows = await ReadAsync(() => context.Database.GetDbConnection().QueryAsync<CustomerRow>(new CommandDefinition(
             """
             SELECT ID AS "Id", NAME AS "Name" FROM CUSTOMERS
-            ORDER BY NAME ASC, ID ASC OFFSET :Offset ROWS FETCH NEXT :Size ROWS ONLY
+            ORDER BY NAME ASC, ID ASC OFFSET :page_offset ROWS FETCH NEXT :page_size ROWS ONLY
             """, new BoundParameters(
-                new OracleParameter("Size", OracleDbType.Int32, page.Size, ParameterDirection.Input),
-                new OracleParameter("Offset", OracleDbType.Int32, page.Offset, ParameterDirection.Input)),
+                new OracleParameter("page_size", OracleDbType.Int32, page.Size, ParameterDirection.Input),
+                new OracleParameter("page_offset", OracleDbType.Int32, page.Offset, ParameterDirection.Input)),
             context.Database.CurrentTransaction?.GetDbTransaction(), cancellationToken: cancellationToken)), cancellationToken);
         return rows.Select(row => row.ToResponse()).ToArray();
     }
