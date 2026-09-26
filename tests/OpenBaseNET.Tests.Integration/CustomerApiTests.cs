@@ -80,6 +80,8 @@ public sealed class CustomerApiTests : TestDatabase
         var body = await response.Content.ReadAsStringAsync();
         Assert.DoesNotContain("Npgsql", body);
         Assert.DoesNotContain("SqlClient", body);
+        Assert.DoesNotContain("Oracle", body);
+        Assert.DoesNotContain("ORA-", body);
         Assert.DoesNotContain("customers", body);
         Assert.DoesNotContain("SELECT", body);
         Assert.DoesNotContain(ConnectionString, body);

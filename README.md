@@ -4,8 +4,8 @@ Base unificada para templates .NET com arquitetura hexagonal e adaptadores Postg
 SQL Server e Oracle. O desenvolvimento é acompanhado no [plano de execução #7](https://github.com/britors/OpenBaseNET/issues/7).
 
 Os contratos do M1 estão definidos. Os quatro projetos de produção já implementam Customer
-com API HTTP e adaptadores PostgreSQL/SQL Server, selecionados na compilação, com migrations
-próprias e testes de integração. Oracle, template unificado e comandos novos abaixo continuam
+com API HTTP e adaptadores PostgreSQL/SQL Server/Oracle, selecionados na compilação, com migrations
+próprias e testes de integração. Template unificado e comandos novos abaixo continuam
 nas etapas M2/M3; não há pacote unificado publicado.
 
 ## Experiência definida
@@ -25,6 +25,7 @@ projetos de produção e somente os arquivos e dependências do banco escolhido.
 - [Núcleo implementado, testes e contrato dos adaptadores](docs/core.md)
 - [PostgreSQL: configuração, migrations, API e testes reais](docs/postgres.md)
 - [SQL Server: compilação isolada, configuração e testes reais](docs/sqlserver.md)
+- [Oracle: RAW/GUID, schemas, migrations e testes reais](docs/oracle.md)
 - [Arquitetura e direção das dependências](docs/adr/0001-hexagonal-architecture.md)
 - [Criação, opções e compatibilidade](docs/contracts/creation.md)
 - [Manifesto e descoberta de projetos](docs/contracts/project-manifest.md)
@@ -48,8 +49,8 @@ dotnet test tests/OpenBaseNET.Tests.Unit --no-build --configuration Release
 ```
 
 A CI valida o núcleo e o build no Linux/Windows; outra matriz executa testes reais com
-PostgreSQL 16/18 e SQL Server 2022/2025. O build padrão seleciona PostgreSQL; para SQL Server,
-use `-p:OpenBaseDatabase=sqlserver` em restore/build/test. Cada variante possui seus próprios
+PostgreSQL 16/18, SQL Server 2022/2025 e Oracle Free 23.26.3. O build padrão seleciona PostgreSQL; para SQL Server,
+use `-p:OpenBaseDatabase=sqlserver` em restore/build/test (ou `oracle` para Oracle). Cada variante possui seus próprios
 artefatos e depende somente do driver escolhido. Para a suíte completa, configure a conexão
 de testes conforme a documentação do adaptador.
 

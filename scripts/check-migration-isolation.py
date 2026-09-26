@@ -6,7 +6,7 @@ import subprocess
 if os.environ.get("CI", "").lower() != "true":
     raise SystemExit("Run this check in a disposable CI checkout; it creates an unapplied probe migration.")
 database = os.environ.get("OpenBaseDatabase", "postgres")
-providers = {"postgres": ("Postgres", "PostgresModelSnapshot"), "sqlserver": ("SqlServer", "SqlServerModelSnapshot")}
+providers = {"postgres": ("Postgres", "PostgresModelSnapshot"), "sqlserver": ("SqlServer", "SqlServerModelSnapshot"), "oracle": ("Oracle", "OracleModelSnapshot")}
 folder, snapshot = providers[database]
 root = Path(__file__).resolve().parents[1]
 persistence = root / "src/OpenBaseNET.Infrastructure/Persistence"

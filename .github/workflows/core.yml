@@ -9,7 +9,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
-        database: [postgres, sqlserver]
+        database: [postgres, sqlserver, oracle]
     runs-on: ${{ matrix.os }}
     env:
       OpenBaseDatabase: ${{ matrix.database }}

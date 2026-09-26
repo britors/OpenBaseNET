@@ -4,12 +4,12 @@ import json
 from pathlib import Path
 
 parser = argparse.ArgumentParser()
-parser.add_argument("database", choices=("postgres", "sqlserver"))
+parser.add_argument("database", choices=("postgres", "sqlserver", "oracle"))
 args = parser.parse_args()
 root = Path(__file__).resolve().parents[1]
-expected = {"postgres": "Npgsql.EntityFrameworkCore.PostgreSQL", "sqlserver": "Microsoft.EntityFrameworkCore.SqlServer"}[args.database]
+expected = {"postgres": "Npgsql.EntityFrameworkCore.PostgreSQL", "sqlserver": "Microsoft.EntityFrameworkCore.SqlServer", "oracle": "Oracle.EntityFrameworkCore"}[args.database]
 forbidden = {"postgres": ("microsoft.data.sqlclient", "microsoft.entityframeworkcore.sqlserver", "oracle"),
-             "sqlserver": ("npgsql", "oracle")}[args.database]
+             "sqlserver": ("npgsql", "oracle"), "oracle": ("npgsql", "microsoft.data.sqlclient", "microsoft.entityframeworkcore.sqlserver")}[args.database]
 
 for project in ("OpenBaseNET.Domain", "OpenBaseNET.Application", "OpenBaseNET.Infrastructure", "OpenBaseNET.Api"):
     assets = root / "src" / project / "obj" / args.database / "project.assets.json"

@@ -8,6 +8,8 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Condition="'$(OpenBaseDatabase)' == 'postgres'" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Condition="'$(OpenBaseDatabase)' == 'sqlserver'" />
+    <PackageReference Include="Oracle.EntityFrameworkCore" Condition="'$(OpenBaseDatabase)' == 'oracle'" />
+    <Compile Remove="Persistence/Oracle/**/*.cs" Condition="'$(OpenBaseDatabase)' != 'oracle'" />
     <Compile Remove="Persistence/Postgres/**/*.cs" Condition="'$(OpenBaseDatabase)' != 'postgres'" />
     <Compile Remove="Persistence/SqlServer/**/*.cs" Condition="'$(OpenBaseDatabase)' != 'sqlserver'" />
   </ItemGroup>

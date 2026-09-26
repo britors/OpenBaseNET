@@ -130,4 +130,4 @@ HTTP e os 66 testes do núcleo rodam nas duas variantes, sem condições de banc
 
 EF Core.SqlServer está alinhado aos demais pacotes EF em 10.0.12. A auditoria NuGet direta
 e transitiva da variante SQL Server em 2026-09-26 não reportou vulnerabilidades conhecidas.
-Oracle e o pacote NuGet unificado permanecem nas #11/#6.
+Oracle está documentado em [oracle.md](oracle.md); o pacote NuGet unificado permanece na #6.
