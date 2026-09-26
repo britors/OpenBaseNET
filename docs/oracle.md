@@ -101,6 +101,13 @@ V$SESSION. Os testes criam `OB_TEST_<guid>` por caso e removem apenas esse schem
 Pooling fica desabilitado nas conexões desses testes para permitir remover os usuários
 depois de encerrar as sessões. Falta de servidor/configuração é falha, nunca skip.
 
+A suíte configura `OracleConfiguration.DisableOOB=true` antes de abrir conexões para
+enviar cancelamento pelo canal TCP normal (in-band) através da porta do container. Isso
+não altera o padrão da aplicação. Redes que descartam dados TCP urgentes podem exigir
+essa mesma configuração no startup, antes da primeira conexão, ou `DISABLE_OOB=ON` em
+sqlnet.ora. Veja a [configuração de transporte do ODP.NET](https://docs.oracle.com/en/database/oracle/oracle-database/26/odpnt/InstallManagedConfig.html).
+Pipelining permanece desabilitado: o ODP.NET não suporta cancelamento quando ele está ativo.
+
 ```bash
 dotnet test OpenBaseNET.sln --no-build --configuration Release
 ```
