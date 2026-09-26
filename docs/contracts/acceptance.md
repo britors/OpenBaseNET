@@ -15,6 +15,10 @@ Ela não prova a implementação futura do CLI, do template ou dos adaptadores.
 
 ## M2 — Núcleo, template e bancos
 
+O [núcleo Customer](../core.md) já tem testes de domínio, casos de uso e fronteiras sem
+banco/HTTP. A matriz abaixo continua sendo o critério integrado dos adaptadores/template;
+os doubles de unidade não contam como validação de SQL, transações reais ou geração.
+
 | Verificação | PostgreSQL | SQL Server | Oracle |
 | --- | --- | --- | --- |
 | Gerar com nome novo, inclusive namespace com pontos | obrigatório | obrigatório | obrigatório |

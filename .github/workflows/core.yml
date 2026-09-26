@@ -1,0 +1,25 @@
+name: Core
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - run: dotnet restore OpenBaseNET.sln
+      - run: dotnet build OpenBaseNET.sln --no-restore --configuration Release
+      - run: dotnet test OpenBaseNET.sln --no-build --configuration Release --logger "trx;LogFileName=core.trx"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: core-tests-${{ matrix.os }}
+          path: tests/**/TestResults/*.trx

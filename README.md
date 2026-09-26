@@ -3,8 +3,10 @@
 Base unificada para templates .NET com arquitetura hexagonal e adaptadores PostgreSQL,
 SQL Server e Oracle. O desenvolvimento é acompanhado no [plano de execução #7](https://github.com/britors/OpenBaseNET/issues/7).
 
-Este primeiro marco define os contratos. O template unificado e os comandos novos
-abaixo ainda serão implementados nas etapas M2/M3; não há pacote unificado publicado por este repositório.
+Os contratos do M1 estão definidos. O núcleo Domain/Application já implementa os cinco
+casos de uso de Customer, com testes independentes de banco. Adaptadores, template unificado
+e comandos novos abaixo ainda serão implementados nas etapas M2/M3; não há pacote unificado
+publicado por este repositório.
 
 ## Experiência definida
 
@@ -20,6 +22,7 @@ projetos de produção e somente os arquivos e dependências do banco escolhido.
 
 ## Contratos
 
+- [Núcleo implementado, testes e contrato dos adaptadores](docs/core.md)
 - [Arquitetura e direção das dependências](docs/adr/0001-hexagonal-architecture.md)
 - [Criação, opções e compatibilidade](docs/contracts/creation.md)
 - [Manifesto e descoberta de projetos](docs/contracts/project-manifest.md)
@@ -29,6 +32,21 @@ projetos de produção e somente os arquivos e dependências do banco escolhido.
 
 Os exemplos em `contracts/examples` usam a versão ilustrativa `11.0.0-preview.1`.
 Eles descrevem o formato e não anunciam uma versão disponível no NuGet.
+
+## Compilar e testar o núcleo
+
+Requer SDK .NET 10 estável. `global.json` aceita feature bands posteriores dentro da
+linha 10.0. As versões dos pacotes de teste estão em `Directory.Packages.props`; Domain
+e Application usam somente a biblioteca padrão do .NET.
+
+```bash
+dotnet restore OpenBaseNET.sln
+dotnet build OpenBaseNET.sln --no-restore --configuration Release
+dotnet test OpenBaseNET.sln --no-build --configuration Release
+```
+
+A CI valida o núcleo no Linux e no Windows. Os dois projetos de produção atuais serão
+completados por Infrastructure e Api; não há servidor HTTP ou adaptador de banco nesta etapa.
 
 ## Validar os contratos
 
