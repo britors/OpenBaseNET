@@ -26,6 +26,14 @@ jobs:
       ConnectionStrings__Default: User Id=system;Password=OpenBase-CI-only-2026;Data Source=localhost:1521/FREEPDB1;Pooling=false
     steps:
       - uses: actions/checkout@v4
+      - name: Connect directly to the Oracle service network
+        env:
+          ORACLE_SERVICE_ID: ${{ job.services.oracle.id }}
+        run: |
+          oracle_host=$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$ORACLE_SERVICE_ID")
+          test -n "$oracle_host"
+          echo "OPENBASE_TEST_ORACLE=User Id=system;Password=OpenBase-CI-only-2026;Data Source=$oracle_host:1521/FREEPDB1;Pooling=false" >> "$GITHUB_ENV"
+          echo "ConnectionStrings__Default=User Id=system;Password=OpenBase-CI-only-2026;Data Source=$oracle_host:1521/FREEPDB1;Pooling=false" >> "$GITHUB_ENV"
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
