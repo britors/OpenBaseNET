@@ -15,6 +15,41 @@ namespace OpenBaseNET.Tests.Integration;
 
 public sealed class OraclePersistenceTests : TestDatabase
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Driver_cancels_a_blocked_write(bool explicitCancel)
+    {
+        await using var setup = new OracleConnection(ConnectionString);
+        await setup.ExecuteAsync("CREATE TABLE CANCELLATION_GATE (ID NUMBER PRIMARY KEY)");
+        await setup.ExecuteAsync("INSERT INTO CANCELLATION_GATE (ID) VALUES (1)");
+        await using var blocker = new OracleConnection(ConnectionString);
+        await blocker.OpenAsync();
+        await using var blockingTransaction = await blocker.BeginTransactionAsync();
+        await blocker.ExecuteAsync("UPDATE CANCELLATION_GATE SET ID = ID WHERE ID = 1", transaction: blockingTransaction);
+        await using var connection = new OracleConnection(ConnectionString);
+        await connection.OpenAsync();
+        Console.WriteLine($"Pipelining: connection={connection.Pipelining}, global={OracleConfiguration.Pipelining}");
+        await using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE CANCELLATION_GATE SET ID = ID WHERE ID = 1";
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        var operation = command.ExecuteNonQueryAsync(cancellation.Token);
+        try
+        {
+            await WaitForBlockedQueryAsync(operation);
+            if (explicitCancel) command.Cancel();
+            else cancellation.Cancel();
+            var error = await Record.ExceptionAsync(() => operation.WaitAsync(TimeSpan.FromSeconds(5)));
+            Assert.True(error is OperationCanceledException or OracleException, $"Expected driver cancellation, received: {error}");
+        }
+        finally
+        {
+            await blockingTransaction.RollbackAsync();
+            try { await operation.WaitAsync(TimeSpan.FromSeconds(10)); }
+            catch (Exception) { /* Preserve the assertion failure. */ }
+        }
+    }
+
     [Fact]
     public async Task Migrations_are_repeatable_and_model_matches_snapshot()
     {
