@@ -68,8 +68,9 @@ leitura do Oracle e não bloqueia da mesma forma que no SQL Server padrão. DDL 
 commit implícito no Oracle: execute migrations separadamente das transações de negócio.
 
 Cancelamento é propagado ao ODP.NET; quando o token foi cancelado e o driver retorna
-OracleException, o adaptador normaliza para OperationCanceledException e preserva o erro
-original como InnerException. Sem cancelamento solicitado, erros Oracle são propagados.
+OracleException ou uma OperationCanceledException com token interno, o adaptador normaliza
+para OperationCanceledException com o token da chamada e preserva o erro original como
+InnerException. Sem cancelamento solicitado, erros Oracle são propagados.
 Falhas provocam rollback e limpeza do tracking. Perda de conexão no commit pode deixar
 resultado desconhecido; não se repete uma escrita automaticamente. Se a limpeza falhar,
 descarte o escopo. Consulte também o [contrato transacional](core.md).
@@ -100,6 +101,24 @@ CREATE TABLE, CREATE VIEW e CREATE PROCEDURE, atribuir cota no tablespace USERS 
 V$SESSION. Os testes criam `OB_TEST_<guid>` por caso e removem apenas esse schema gerado.
 Pooling fica desabilitado nas conexões desses testes para permitir remover os usuários
 depois de encerrar as sessões. Falta de servidor/configuração é falha, nunca skip.
+
+### Cancelamento e rede do servidor
+
+A imagem de testes configura `DISABLE_OOB=ON` e `BREAK_POLL_SKIP=1000` no `sqlnet.ora`.
+Essa configuração foi introduzida para contornar um problema do proxy do Docker, conforme
+o [mantenedor da imagem](https://github.com/gvenzl/oci-oracle-xe/issues/43). Ela interfere
+no recebimento dos sinais de interrupção pelo servidor; alterar apenas `DisableOOB` no
+cliente não habilita esse mecanismo no servidor.
+
+A CI conecta diretamente ao IP do container e configura `DISABLE_OOB=OFF` no servidor
+efêmero antes de abrir as conexões de teste. Ao reiniciar o listener, executa
+`ALTER SYSTEM REGISTER` para registrar novamente o serviço `FREEPDB1`. O ODP.NET mantém
+sua configuração padrão. Esse caminho evita o proxy que motivou a configuração da imagem.
+Para reproduzir a suíte em outro ambiente, o servidor e o caminho de rede precisam
+permitir o sinal de interrupção. Consulte a definição de
+[DISABLE_OOB no Oracle Net](https://docs.oracle.com/en/database/oracle/oracle-database/26/netrf/parameters-for-the-sqlnet.ora.html).
+
+### Executar a suíte
 
 ```bash
 dotnet test OpenBaseNET.sln --no-build --configuration Release

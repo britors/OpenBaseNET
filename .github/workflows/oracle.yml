@@ -6,10 +6,6 @@ permissions:
   contents: read
 jobs:
   integration:
-    strategy:
-      fail-fast: false
-      matrix:
-        disable-oob: ['ON', 'OFF']
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
@@ -33,18 +29,23 @@ jobs:
       - name: Connect directly to the Oracle service network
         env:
           ORACLE_SERVICE_ID: ${{ job.services.oracle.id }}
-          ORACLE_SERVER_DISABLE_OOB: ${{ matrix.disable-oob }}
         run: |
           oracle_host=$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$ORACLE_SERVICE_ID")
           test -n "$oracle_host"
           echo "OPENBASE_TEST_ORACLE=User Id=system;Password=OpenBase-CI-only-2026;Data Source=$oracle_host:1521/FREEPDB1;Pooling=false" >> "$GITHUB_ENV"
           echo "ConnectionStrings__Default=User Id=system;Password=OpenBase-CI-only-2026;Data Source=$oracle_host:1521/FREEPDB1;Pooling=false" >> "$GITHUB_ENV"
-          docker exec "$ORACLE_SERVICE_ID" sh -c '
-            sed -i "s/^DISABLE_OOB=.*/DISABLE_OOB=$1/" "$ORACLE_HOME/network/admin/sqlnet.ora"
-            cat "$ORACLE_HOME/network/admin/sqlnet.ora"
+      - name: Enable out-of-band cancellation on the test server
+        env:
+          ORACLE_SERVICE_ID: ${{ job.services.oracle.id }}
+        run: |
+          # The image disables OOB to work around Docker proxy issues. The direct
+          # service IP above bypasses that proxy and preserves urgent break signals.
+          docker exec "$ORACLE_SERVICE_ID" sh -eu -c '
+            sed -i "s/^DISABLE_OOB=.*/DISABLE_OOB=OFF/" "$ORACLE_HOME/network/admin/sqlnet.ora"
+            grep -qx "DISABLE_OOB=OFF" "$ORACLE_HOME/network/admin/sqlnet.ora"
             lsnrctl stop
             lsnrctl start
-          ' sh "$ORACLE_SERVER_DISABLE_OOB"
+          '
           docker exec -i "$ORACLE_SERVICE_ID" sqlplus -s / as sysdba <<'SQL'
           WHENEVER SQLERROR EXIT FAILURE
           ALTER SYSTEM REGISTER;
@@ -62,5 +63,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: oracle-tests-oob-${{ matrix.disable-oob }}
+          name: oracle-tests
           path: tests/**/TestResults/*.trx
