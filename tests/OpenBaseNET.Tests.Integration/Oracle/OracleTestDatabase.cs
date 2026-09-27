@@ -10,6 +10,17 @@ namespace OpenBaseNET.Tests.Integration;
 // Each test owns a generated schema inside the configured test PDB.
 public abstract class TestDatabase : IAsyncLifetime
 {
+    static TestDatabase()
+    {
+        if (Environment.GetEnvironmentVariable("OPENBASE_ORACLE_TRACE") == "true")
+        {
+            OracleConfiguration.TraceFileLocation = Path.GetFullPath("artifacts/oracle-trace");
+            OracleConfiguration.TraceLevel = 7;
+            OracleConfiguration.TraceOption = 1;
+            OracleConfiguration.DisableOOB = Environment.GetEnvironmentVariable("OPENBASE_ORACLE_DISABLE_OOB") == "true";
+        }
+    }
+
     protected string SchemaName { get; } = "OB_TEST_" + Guid.NewGuid().ToString("N").ToUpperInvariant();
     protected string AdminConnectionString { get; private set; } = "";
     protected string ConnectionString { get; private set; } = "";

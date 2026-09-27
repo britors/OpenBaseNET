@@ -9,13 +9,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        server: ['23.26.3', '23.26.2']
-        provider: ['10.23.26301', '10.23.26200']
+        disable-oob: ['false', 'true']
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
       oracle:
-        image: gvenzl/oracle-free:${{ matrix.server }}-slim-faststart
+        image: gvenzl/oracle-free:23.26.3-slim-faststart
         env:
           ORACLE_PASSWORD: OpenBase-CI-only-2026
         ports:
@@ -27,6 +26,8 @@ jobs:
           --health-retries 30
     env:
       OpenBaseDatabase: oracle
+      OPENBASE_ORACLE_TRACE: 'true'
+      OPENBASE_ORACLE_DISABLE_OOB: ${{ matrix.disable-oob }}
       OPENBASE_TEST_ORACLE: User Id=system;Password=OpenBase-CI-only-2026;Data Source=localhost:1521/FREEPDB1;Pooling=false
       ConnectionStrings__Default: User Id=system;Password=OpenBase-CI-only-2026;Data Source=localhost:1521/FREEPDB1;Pooling=false
     steps:
@@ -39,19 +40,10 @@ jobs:
           test -n "$oracle_host"
           echo "OPENBASE_TEST_ORACLE=User Id=system;Password=OpenBase-CI-only-2026;Data Source=$oracle_host:1521/FREEPDB1;Pooling=false" >> "$GITHUB_ENV"
           echo "ConnectionStrings__Default=User Id=system;Password=OpenBase-CI-only-2026;Data Source=$oracle_host:1521/FREEPDB1;Pooling=false" >> "$GITHUB_ENV"
+          docker exec "$ORACLE_SERVICE_ID" sh -c 'cat "$ORACLE_HOME/network/admin/sqlnet.ora"; cat "$ORACLE_HOME/network/admin/listener.ora"'
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-      - name: Select provider for cancellation comparison
-        env:
-          ORACLE_PROVIDER_VERSION: ${{ matrix.provider }}
-        run: |
-          python3 - <<'PY'
-          import os
-          from pathlib import Path
-          path = Path('Directory.Packages.props')
-          path.write_text(path.read_text().replace('10.23.26301', os.environ['ORACLE_PROVIDER_VERSION']))
-          PY
       - run: dotnet restore OpenBaseNET.sln
       - run: dotnet build OpenBaseNET.sln --no-restore --configuration Release
       - run: python3 scripts/check-provider.py oracle
@@ -61,5 +53,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: oracle-tests-${{ matrix.server }}-${{ matrix.provider }}
-          path: tests/**/TestResults/*.trx
+          name: oracle-tests-oob-${{ matrix.disable-oob }}
+          path: |
+            tests/**/TestResults/*.trx
+            tests/**/artifacts/oracle-trace/**
