@@ -5,8 +5,21 @@ SQL Server e Oracle. O desenvolvimento é acompanhado no [plano de execução #7
 
 Os contratos do M1 estão definidos. Os quatro projetos de produção já implementam Customer
 com API HTTP e adaptadores PostgreSQL/SQL Server/Oracle, selecionados na compilação, com migrations
-próprias e testes de integração. Template unificado e comandos novos abaixo continuam
-nas etapas M2/M3; não há pacote unificado publicado.
+próprias e testes de integração. O template unificado pode ser empacotado e instalado
+localmente; os novos comandos do OpenBase CLI continuam em M3. Não há pacote unificado
+publicado no NuGet.
+
+## Gerar uma aplicação
+
+```bash
+python3 scripts/pack-template.py --version 11.0.0-preview.1
+dotnet new install artifacts/packages/w3ti.OpenBaseNET.Template.11.0.0-preview.1.nupkg
+dotnet new openbasenet --name MinhaApi --database postgres
+```
+
+Use `sqlserver` ou `oracle` para os outros bancos. No Windows, use `python`.
+A escolha é obrigatória; gerar não exige conexão com o banco nem OpenBase CLI.
+Veja [empacotamento, conteúdo e validação do template](docs/template.md).
 
 ## Experiência definida
 
@@ -33,8 +46,8 @@ projetos de produção e somente os arquivos e dependências do banco escolhido.
 - [JSON Schema do manifesto v2](contracts/openbase.schema.json)
 - [Matriz de aceitação](docs/contracts/acceptance.md)
 
-Os exemplos em `contracts/examples` usam a versão ilustrativa `11.0.0-preview.1`.
-Eles descrevem o formato e não anunciam uma versão disponível no NuGet.
+Os exemplos em `contracts/examples` e a validação do pacote usam `11.0.0-preview.1`.
+Essa versão local de desenvolvimento não anuncia uma publicação disponível no NuGet.
 
 ## Compilar e testar o núcleo
 
@@ -64,7 +77,7 @@ python3 -m venv .venv
 
 No Windows, use `.venv\Scripts\python.exe`. Essa validação cobre schemas, exemplos,
 casos inválidos e consistência dos contratos; não substitui build nem testes de integração
-com .NET e os bancos, previstos nos próximos milestones.
+com .NET e os bancos, executados pelas suítes próprias e pela validação das aplicações geradas.
 
 ## Repositórios relacionados
 

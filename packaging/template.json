@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "britors",
+  "classifications": ["Web", "Web API", "Hexagonal"],
+  "identity": "w3ti.OpenBaseNET.Template",
+  "name": "OpenBaseNET Hexagonal API",
+  "shortName": "openbasenet",
+  "sourceName": "OpenBaseTemplate",
+  "preferNameDirectory": true,
+  "tags": { "language": "C#", "type": "solution" },
+  "symbols": {
+    "database": {
+      "type": "parameter",
+      "dataType": "choice",
+      "isRequired": true,
+      "description": "Database adapter included in the generated application.",
+      "choices": [
+        { "choice": "postgres", "description": "PostgreSQL" },
+        { "choice": "sqlserver", "description": "SQL Server" },
+        { "choice": "oracle", "description": "Oracle" }
+      ],
+      "replaces": "__OPENBASE_DATABASE__"
+    },
+    "postgres": { "type": "computed", "value": "database == \"postgres\"" },
+    "sqlserver": { "type": "computed", "value": "database == \"sqlserver\"" },
+    "oracle": { "type": "computed", "value": "database == \"oracle\"" },
+    "providerFolder": {
+      "type": "generated",
+      "generator": "switch",
+      "parameters": {
+        "cases": [
+          { "condition": "postgres", "value": "Postgres" },
+          { "condition": "sqlserver", "value": "SqlServer" },
+          { "condition": "oracle", "value": "Oracle" }
+        ]
+      },
+      "replaces": "__OPENBASE_PROVIDER_FOLDER__"
+    },
+    "userSecretsId": {
+      "type": "generated",
+      "generator": "guid",
+      "parameters": { "format": "D" },
+      "replaces": "__OPENBASE_USER_SECRETS__"
+    }
+  },
+  "sources": [{
+    "modifiers": [
+      { "condition": "!postgres", "exclude": ["src/**/Postgres/**", "tests/**/Postgres/**"] },
+      { "condition": "!sqlserver", "exclude": ["src/**/SqlServer/**", "tests/**/SqlServer/**"] },
+      { "condition": "!oracle", "exclude": ["src/**/Oracle/**", "tests/**/Oracle/**"] }
+    ]
+  }],
+  "primaryOutputs": [{ "path": "OpenBaseTemplate.sln" }]
+}

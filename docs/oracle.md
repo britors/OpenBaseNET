@@ -16,7 +16,8 @@ python3 scripts/check-provider.py oracle
 No PowerShell, use `$env:OpenBaseDatabase='oracle'`. Também é possível passar
 `-p:OpenBaseDatabase=oracle` em restore/build/test/run, mantendo a mesma seleção em cada
 comando. Artefatos ficam em `obj/oracle` e `bin/oracle`; as dependências avaliadas não
-incluem Npgsql nem SqlClient. A exclusão física dos arquivos gerados pertence à #6.
+incluem Npgsql nem SqlClient. O [template](template.md) também exclui fisicamente os
+arquivos e referências dos bancos não selecionados.
 
 Configure `ConnectionStrings__Default` com usuário da aplicação, senha e o serviço da PDB,
 por exemplo `User Id=minha_api;Password=<senha>;Data Source=localhost:1521/FREEPDB1`.
@@ -32,7 +33,8 @@ dotnet run --project src/OpenBaseNET.Api --configuration Release
 API e ferramentas EF exigem conexão explícita; não há migrations automáticas no startup.
 A factory EF lê a variável de ambiente; a API também aceita User Secrets em desenvolvimento.
 `OpenBaseDatabase` seleciona o código compilado, não troca o banco de um binário pronto.
-O comando público planejado `openbase new -n MinhaApi -d oracle` depende das #6/#12.
+O comando público planejado `openbase new -n MinhaApi -d oracle` depende do CLI na #12.
+O [template local](template.md) já permite `dotnet new openbasenet --name MinhaApi --database oracle`.
 
 ## Modelo e particularidades
 
