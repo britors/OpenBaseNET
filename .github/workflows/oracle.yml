@@ -34,6 +34,23 @@ jobs:
           test -n "$oracle_host"
           echo "OPENBASE_TEST_ORACLE=User Id=system;Password=OpenBase-CI-only-2026;Data Source=$oracle_host:1521/FREEPDB1;Pooling=false" >> "$GITHUB_ENV"
           echo "ConnectionStrings__Default=User Id=system;Password=OpenBase-CI-only-2026;Data Source=$oracle_host:1521/FREEPDB1;Pooling=false" >> "$GITHUB_ENV"
+      - name: Enable out-of-band cancellation on the test server
+        env:
+          ORACLE_SERVICE_ID: ${{ job.services.oracle.id }}
+        run: |
+          # The image disables OOB to work around Docker proxy issues. The direct
+          # service IP above bypasses that proxy and preserves urgent break signals.
+          docker exec "$ORACLE_SERVICE_ID" sh -eu -c '
+            sed -i "s/^DISABLE_OOB=.*/DISABLE_OOB=OFF/" "$ORACLE_HOME/network/admin/sqlnet.ora"
+            grep -qx "DISABLE_OOB=OFF" "$ORACLE_HOME/network/admin/sqlnet.ora"
+            lsnrctl stop
+            lsnrctl start
+          '
+          docker exec -i "$ORACLE_SERVICE_ID" sqlplus -s / as sysdba <<'SQL'
+          WHENEVER SQLERROR EXIT FAILURE
+          ALTER SYSTEM REGISTER;
+          EXIT
+          SQL
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'

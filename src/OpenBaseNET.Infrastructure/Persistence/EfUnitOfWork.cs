@@ -34,9 +34,10 @@ internal sealed class EfUnitOfWork(OpenBaseDbContext context, ILogger<EfUnitOfWo
         }
         catch (Exception exception)
         {
-            // SqlClient may surface cancellation as a database error instead of a cancelled task.
+            // Providers can report a database error or cancellation with an internal token.
             failure = cancellationToken.IsCancellationRequested
-                && (exception is DbException || exception is DbUpdateException { InnerException: DbException })
+                && (exception is DbException || exception is DbUpdateException { InnerException: DbException }
+                    || exception is OperationCanceledException canceled && canceled.CancellationToken != cancellationToken)
                 ? new OperationCanceledException("Database operation was canceled.", exception, cancellationToken)
                 : exception;
             if (transaction is not null)

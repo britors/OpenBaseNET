@@ -36,6 +36,12 @@ internal sealed class OracleCustomerQueries(OpenBaseDbContext context) : ICustom
     {
         cancellationToken.ThrowIfCancellationRequested();
         try { return await read(); }
+        catch (OperationCanceledException exception) when (cancellationToken.IsCancellationRequested
+            && exception.CancellationToken != cancellationToken)
+        {
+            // ODP.NET can report its internal command token instead of the caller's token.
+            throw new OperationCanceledException("Database operation was canceled.", exception, cancellationToken);
+        }
         catch (OracleException exception) when (cancellationToken.IsCancellationRequested)
         {
             throw new OperationCanceledException("Database operation was canceled.", exception, cancellationToken);
