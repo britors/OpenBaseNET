@@ -71,6 +71,9 @@ def stage(content, version):
     manifest["persistence"]["migrationsPath"] = "src/MinhaApi.Infrastructure/Persistence/__OPENBASE_PROVIDER_FOLDER__/Migrations"
     # The distinct sourceName preserves the canonical $schema URL containing OpenBaseNET.
     (content / ".openbase.json").write_text(json.dumps(manifest, indent=2).replace("MinhaApi", SOURCE_NAME) + "\n", encoding="utf-8")
+    # MSBuild searches props and targets independently. Stop unrelated parent targets
+    # from leaking in when the user generates this solution inside another repository.
+    (content / "Directory.Build.targets").write_text("<Project />\n", encoding="utf-8")
     shutil.copyfile(ROOT / "packaging/generated-README.md", content / "README.md")
 
 
