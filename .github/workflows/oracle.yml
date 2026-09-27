@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        disable-oob: ['false', 'true']
+        disable-oob: ['ON', 'OFF']
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
@@ -26,8 +26,6 @@ jobs:
           --health-retries 30
     env:
       OpenBaseDatabase: oracle
-      OPENBASE_ORACLE_TRACE: 'true'
-      OPENBASE_ORACLE_DISABLE_OOB: ${{ matrix.disable-oob }}
       OPENBASE_TEST_ORACLE: User Id=system;Password=OpenBase-CI-only-2026;Data Source=localhost:1521/FREEPDB1;Pooling=false
       ConnectionStrings__Default: User Id=system;Password=OpenBase-CI-only-2026;Data Source=localhost:1521/FREEPDB1;Pooling=false
     steps:
@@ -35,12 +33,18 @@ jobs:
       - name: Connect directly to the Oracle service network
         env:
           ORACLE_SERVICE_ID: ${{ job.services.oracle.id }}
+          ORACLE_SERVER_DISABLE_OOB: ${{ matrix.disable-oob }}
         run: |
           oracle_host=$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$ORACLE_SERVICE_ID")
           test -n "$oracle_host"
           echo "OPENBASE_TEST_ORACLE=User Id=system;Password=OpenBase-CI-only-2026;Data Source=$oracle_host:1521/FREEPDB1;Pooling=false" >> "$GITHUB_ENV"
           echo "ConnectionStrings__Default=User Id=system;Password=OpenBase-CI-only-2026;Data Source=$oracle_host:1521/FREEPDB1;Pooling=false" >> "$GITHUB_ENV"
-          docker exec "$ORACLE_SERVICE_ID" sh -c 'cat "$ORACLE_HOME/network/admin/sqlnet.ora"; cat "$ORACLE_HOME/network/admin/listener.ora"'
+          docker exec "$ORACLE_SERVICE_ID" sh -c '
+            sed -i "s/^DISABLE_OOB=.*/DISABLE_OOB=$1/" "$ORACLE_HOME/network/admin/sqlnet.ora"
+            cat "$ORACLE_HOME/network/admin/sqlnet.ora"
+            lsnrctl stop
+            lsnrctl start
+          ' sh "$ORACLE_SERVER_DISABLE_OOB"
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
@@ -54,6 +58,4 @@ jobs:
         if: always()
         with:
           name: oracle-tests-oob-${{ matrix.disable-oob }}
-          path: |
-            tests/**/TestResults/*.trx
-            tests/**/artifacts/oracle-trace/**
+          path: tests/**/TestResults/*.trx
