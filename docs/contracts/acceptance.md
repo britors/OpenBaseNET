@@ -19,8 +19,10 @@ O [núcleo Customer](../core.md) já tem testes de domínio, casos de uso e fron
 banco/HTTP. A matriz abaixo continua sendo o critério integrado dos adaptadores/template;
 os doubles de unidade não contam como validação de SQL, transações reais ou geração.
 
-A [integração PostgreSQL](../postgres.md) acrescenta testes reais de migrations, persistência,
-transações, cancelamento e API; a geração das variantes e os outros bancos continuam pendentes.
+As integrações [PostgreSQL](../postgres.md), [SQL Server](../sqlserver.md) e
+[Oracle](../oracle.md) acrescentam testes reais de migrations, persistência, transações,
+cancelamento e API. A [validação do pacote](../template.md) gera as três variantes,
+compara seus núcleos e verifica nomes, manifesto e exclusividade dos drivers.
 
 | Verificação | PostgreSQL | SQL Server | Oracle |
 | --- | --- | --- | --- |

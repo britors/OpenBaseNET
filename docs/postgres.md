@@ -2,8 +2,9 @@
 
 Implementação da #3 e avanço da #4. A solução contém os quatro projetos de produção:
 Domain, Application, Infrastructure e Api. O adaptador PostgreSQL está operacional;
-SQL Server também tem um [adaptador isolado](sqlserver.md); Oracle e a geração do template
-continuam nas próximas etapas. PostgreSQL é a seleção de build padrão (`OpenBaseDatabase=postgres`).
+SQL Server e Oracle também têm adaptadores isolados. PostgreSQL é a seleção de build
+padrão deste repositório (`OpenBaseDatabase=postgres`); o [template](template.md) fixa
+o banco na geração e exclui os arquivos dos demais providers.
 
 ## Persistência
 
@@ -136,6 +137,6 @@ Versões ficam em Directory.Packages.props e `.config/dotnet-tools.json`.
 
 Em 2026-09-26, `dotnet list OpenBaseNET.sln package --vulnerable --include-transitive
 --no-restore --format json` não reportou vulnerabilidades conhecidas no NuGet para os seis
-projetos. Domain/Application continuam sem pacotes. A auditoria e a seleção exclusiva de
-drivers na geração do template continuam pendentes na #4/#6. SQL Server tem auditoria
-e isolamento de compilação próprios; Oracle ainda não foi implementado.
+projetos. Domain/Application continuam sem pacotes. SQL Server e Oracle têm auditorias
+e isolamento de compilação próprios. A [validação do template](template.md) verifica
+também a exclusão física de arquivos e referências dos bancos não selecionados.

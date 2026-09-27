@@ -1,0 +1,46 @@
+name: Template
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - run: python3 scripts/pack-template.py --version 11.0.0-preview.1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: template-package
+          path: artifacts/packages/*.nupkg
+          if-no-files-found: error
+  generated:
+    needs: pack
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r requirements-contracts.txt
+      - uses: actions/download-artifact@v4
+        with:
+          name: template-package
+          path: artifacts/packages
+      - run: python scripts/check-template.py --package artifacts/packages/w3ti.OpenBaseNET.Template.11.0.0-preview.1.nupkg --output artifacts/generated
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: template-tests-${{ matrix.os }}
+          path: artifacts/generated/**/TestResults/*.trx

@@ -6,7 +6,7 @@ Infrastructure; configuração, SQL Dapper e migrations são específicos do pro
 
 ## Seleção na compilação
 
-Enquanto o pacote de template da #6 não existe, selecione o banco ao compilar o repositório:
+Para desenvolver o adaptador neste repositório, selecione o banco ao compilar:
 
 ```bash
 dotnet restore OpenBaseNET.sln -p:OpenBaseDatabase=sqlserver
@@ -36,7 +36,8 @@ conexão padrão nem aplicação automática de migrations na inicialização da
 
 `OpenBaseDatabase` é uma opção de build do código fonte. Não permite trocar um executável
 pronto de banco alterando appsettings. O futuro comando público continua sendo
-`openbase new -n MinhaApi -d sqlserver`; ele ainda depende do template/CLI nas #6/#12.
+`openbase new -n MinhaApi -d sqlserver`; ele ainda depende do CLI na #12.
+O [template local](template.md) já permite `dotnet new openbasenet --name MinhaApi --database sqlserver`.
 
 ## Isolamento
 
@@ -47,7 +48,7 @@ apenas o adaptador escolhido. Não há switch de provider em cada consulta ou no
 `scripts/check-provider.py` verifica os assets avaliados dos quatro projetos e o deps.json
 da API, incluindo dependências transitivas. O núcleo não pode restaurar pacotes externos,
 e o artefato não pode depender do driver do outro banco. Isso valida a compilação isolada;
-a exclusão física dos arquivos do projeto gerado continua na #6.
+a exclusão física dos arquivos e referências também é verificada nas aplicações geradas.
 
 ## Modelo e diferenças de SQL
 
@@ -130,4 +131,5 @@ HTTP e os 66 testes do núcleo rodam nas duas variantes, sem condições de banc
 
 EF Core.SqlServer está alinhado aos demais pacotes EF em 10.0.12. A auditoria NuGet direta
 e transitiva da variante SQL Server em 2026-09-26 não reportou vulnerabilidades conhecidas.
-Oracle está documentado em [oracle.md](oracle.md); o pacote NuGet unificado permanece na #6.
+Oracle está documentado em [oracle.md](oracle.md); o [pacote unificado](template.md)
+pode ser instalado localmente e ainda não foi publicado no NuGet.
