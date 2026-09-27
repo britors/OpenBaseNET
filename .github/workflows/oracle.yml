@@ -6,11 +6,16 @@ permissions:
   contents: read
 jobs:
   integration:
+    strategy:
+      fail-fast: false
+      matrix:
+        server: ['23.26.3', '23.26.2']
+        provider: ['10.23.26301', '10.23.26200']
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
       oracle:
-        image: gvenzl/oracle-free:23.26.3-slim-faststart
+        image: gvenzl/oracle-free:${{ matrix.server }}-slim-faststart
         env:
           ORACLE_PASSWORD: OpenBase-CI-only-2026
         ports:
@@ -37,6 +42,16 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
+      - name: Select provider for cancellation comparison
+        env:
+          ORACLE_PROVIDER_VERSION: ${{ matrix.provider }}
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          path = Path('Directory.Packages.props')
+          path.write_text(path.read_text().replace('10.23.26301', os.environ['ORACLE_PROVIDER_VERSION']))
+          PY
       - run: dotnet restore OpenBaseNET.sln
       - run: dotnet build OpenBaseNET.sln --no-restore --configuration Release
       - run: python3 scripts/check-provider.py oracle
@@ -46,5 +61,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: oracle-tests
+          name: oracle-tests-${{ matrix.server }}-${{ matrix.provider }}
           path: tests/**/TestResults/*.trx
