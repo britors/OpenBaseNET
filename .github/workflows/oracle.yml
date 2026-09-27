@@ -45,6 +45,11 @@ jobs:
             lsnrctl stop
             lsnrctl start
           ' sh "$ORACLE_SERVER_DISABLE_OOB"
+          docker exec -i "$ORACLE_SERVICE_ID" sqlplus -s / as sysdba <<'SQL'
+          WHENEVER SQLERROR EXIT FAILURE
+          ALTER SYSTEM REGISTER;
+          EXIT
+          SQL
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
